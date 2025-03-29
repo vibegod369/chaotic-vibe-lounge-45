@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   LineChart, 
@@ -15,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUpIcon, TrendingDownIcon, CircleDollarSignIcon } from 'lucide-react';
 import GlitchText from './GlitchText';
-import { ethers } from 'ethers';
+import geckoTerminalService from '@/services/geckoTerminal';
 import uniswapService from '@/services/uniswap';
 
 interface PriceDataPoint {
@@ -29,85 +30,81 @@ interface PriceChartProps {
   baseToken: string;
 }
 
-const fetchHistoricalPrices = async (tokenAddress: string, timeframe: string) => {
-  try {
-    const provider = new ethers.providers.JsonRpcProvider("https://mainnet.base.org");
-    
-    const mockData: PriceDataPoint[] = [];
-    const points = timeframe === '24h' ? 24 : timeframe === '7d' ? 28 : 30;
-    
-    let basePrice;
-    if (tokenAddress === uniswapService.getAvailableTokens().find(t => t.symbol === 'BRETT')?.address) {
-      basePrice = 0.32;
-    } else if (tokenAddress === uniswapService.getAvailableTokens().find(t => t.symbol === 'QR')?.address) {
-      basePrice = 0.0045;
-    } else if (tokenAddress === uniswapService.getAvailableTokens().find(t => t.symbol === 'PUBLIC')?.address) {
-      basePrice = 0.003;
-    } else {
-      basePrice = 1800;
-    }
-    
-    let lastPrice = basePrice;
-    const volatility = 0.05;
-    const trend = Math.random() > 0.5 ? 1 : -1;
-    
-    for (let i = 0; i < points; i++) {
-      const randomFactor = Math.random() * volatility;
-      const trendFactor = trend * (i / points) * 0.1;
-      const change = randomFactor - (volatility / 2) + trendFactor;
-      
-      lastPrice = lastPrice * (1 + change);
-      lastPrice = Math.max(lastPrice, basePrice * 0.7);
-      
-      mockData.push({
-        name: timeframe === '24h' 
-          ? `${i}:00` 
-          : timeframe === '7d' 
-            ? `Day ${Math.floor(i/4) + 1}` 
-            : `Day ${i+1}`,
-        price: parseFloat(lastPrice.toFixed(6)),
-        volume: Math.floor(Math.random() * 100000) + 10000,
-      });
-    }
-    
-    return mockData;
-  } catch (error) {
-    console.error("Error fetching historical prices:", error);
-    return [];
-  }
-};
-
 const PriceChart = ({ symbol, baseToken }: PriceChartProps) => {
   const [data, setData] = useState<PriceDataPoint[]>([]);
   const [timeframe, setTimeframe] = useState('24h');
   const [isLoading, setIsLoading] = useState(true);
   const [priceChange, setPriceChange] = useState({ value: 0, percent: 0 });
+  const [livePrice, setLivePrice] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Fetch live price
+    const fetchLivePrice = async () => {
+      try {
+        const price = await geckoTerminalService.getTokenPrice(symbol);
+        if (price) {
+          setLivePrice(price.usd);
+        }
+      } catch (error) {
+        console.error('Error fetching live price:', error);
+      }
+    };
+
+    fetchLivePrice();
+    const interval = setInterval(fetchLivePrice, 60000); // Update price every minute
+    
+    return () => clearInterval(interval);
+  }, [symbol]);
 
   useEffect(() => {
     const fetchPriceData = async () => {
       setIsLoading(true);
       
       try {
-        const tokenAddress = uniswapService.getAvailableTokens().find(t => t.symbol === symbol)?.address;
-        
-        if (!tokenAddress) {
-          throw new Error("Token address not found");
-        }
-        
-        const historicalData = await fetchHistoricalPrices(tokenAddress, timeframe);
+        // Try to get historical data from GeckoTerminal
+        const historicalData = await geckoTerminalService.getTokenPriceHistory(
+          symbol, 
+          timeframe as '24h' | '7d' | '30d'
+        );
         
         if (historicalData.length > 0) {
-          const startPrice = historicalData[0].price;
-          const endPrice = historicalData[historicalData.length - 1].price;
-          const change = endPrice - startPrice;
-          const changePercent = (change / startPrice) * 100;
-          
-          setPriceChange({
-            value: change,
-            percent: changePercent
+          // Transform data for chart
+          const chartData: PriceDataPoint[] = historicalData.map(dataPoint => {
+            const date = new Date(dataPoint.timestamp);
+            let name;
+            
+            if (timeframe === '24h') {
+              name = date.getHours() + ':00';
+            } else if (timeframe === '7d') {
+              name = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            } else {
+              name = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            }
+            
+            return {
+              name,
+              price: dataPoint.price,
+              volume: dataPoint.volume || 0
+            };
           });
           
-          setData(historicalData);
+          setData(chartData);
+          
+          // Calculate price change
+          if (chartData.length > 1) {
+            const startPrice = chartData[0].price;
+            const endPrice = chartData[chartData.length - 1].price;
+            const change = endPrice - startPrice;
+            const changePercent = (change / startPrice) * 100;
+            
+            setPriceChange({
+              value: change,
+              percent: changePercent
+            });
+          }
+        } else {
+          // Fallback to generated data if API returns no data
+          generateChartData();
         }
       } catch (error) {
         console.error("Error fetching chart data:", error);
@@ -125,7 +122,17 @@ const PriceChart = ({ symbol, baseToken }: PriceChartProps) => {
       const mockData: PriceDataPoint[] = [];
       const points = timeframe === '24h' ? 24 : timeframe === '7d' ? 28 : 30;
       const volatility = symbol === 'BRETT' ? 0.15 : symbol === 'QR' ? 0.25 : 0.08;
-      const basePrice = symbol === 'BRETT' ? 0.32 : symbol === 'QR' ? 0.0045 : symbol === 'PUBLIC' ? 0.003 : 1800;
+      
+      // Try to get a realistic base price
+      let basePrice: number;
+      const currentPrice = await uniswapService.getTokenPriceFromGecko(symbol);
+      
+      if (currentPrice) {
+        basePrice = currentPrice;
+      } else {
+        // Fallback prices if API fails
+        basePrice = symbol === 'BRETT' ? 0.32 : symbol === 'QR' ? 0.0045 : symbol === 'PUBLIC' ? 0.003 : 1800;
+      }
       
       let lastPrice = basePrice;
       
@@ -193,7 +200,12 @@ const PriceChart = ({ symbol, baseToken }: PriceChartProps) => {
         
         <div className="flex items-center gap-4 bg-black/40 p-3 rounded-md border border-vibe-neon/20">
           <div className="text-xl font-bold font-code">
-            ${data.length > 0 ? data[data.length - 1].price.toFixed(6) : '0.00'}
+            ${livePrice 
+              ? livePrice.toFixed(6) 
+              : data.length > 0 
+                ? data[data.length - 1].price.toFixed(6) 
+                : '0.00'
+            }
           </div>
           <div className={`flex items-center ${priceChange.percent >= 0 ? 'text-vibe-neon' : 'text-vibe-pink'}`}>
             {priceChange.percent >= 0 ? (
@@ -204,6 +216,9 @@ const PriceChart = ({ symbol, baseToken }: PriceChartProps) => {
             <span className="font-code">
               {priceChange.percent.toFixed(2)}%
             </span>
+          </div>
+          <div className="text-xs text-gray-400 ml-auto">
+            {livePrice ? 'Live data from GeckoTerminal' : 'From chart data'}
           </div>
         </div>
         

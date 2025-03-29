@@ -71,8 +71,29 @@ const mockTopics = [
   },
 ];
 
+// Define the Topic type to ensure type safety
+interface Topic {
+  id: number;
+  title: string;
+  category: string;
+  author: string;
+  date: string;
+  content: string;
+  replies: {
+    id: number;
+    author: string;
+    date: string;
+    content: string;
+    likes: number;
+  }[];
+  views: number;
+  likes: number;
+  isPinned?: boolean;
+  isHot?: boolean;
+}
+
 // In-memory storage (replace with backend calls later)
-let topics = [...mockTopics];
+let topics: Topic[] = [...mockTopics];
 let nextId = 6;
 let nextReplyId = 102;
 
@@ -112,7 +133,7 @@ export class ForumService {
     // First, attempt to "charge" BRETT tokens (simulation)
     try {
       const topicId = nextId++;
-      const newTopic = {
+      const newTopic: Topic = {
         id: topicId,
         title: topicData.title,
         content: topicData.content,
@@ -122,8 +143,7 @@ export class ForumService {
         replies: [],
         views: 1,
         likes: 0,
-        isPinned: false,
-        isHot: false
+        isPinned: false
       };
       
       topics = [newTopic, ...topics];

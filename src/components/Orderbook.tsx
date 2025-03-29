@@ -177,7 +177,6 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
     }
     
     toast({
-      title: "Buy order",
       description: `Buy order for ${baseToken} at ${currentPrice} ${quoteToken}`,
     });
     
@@ -191,7 +190,6 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
     }
     
     toast({
-      title: "Sell order",
       description: `Sell order for ${baseToken} at ${currentPrice} ${quoteToken}`,
     });
     

@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 import { toast } from 'sonner';
 import walletService from './wallet';
+import geckoTerminalService from './geckoTerminal';
 
 // Simplified Uniswap Router ABI (just the functions we need)
 const UNISWAP_ROUTER_ABI = [
@@ -23,8 +24,8 @@ const ERC20_ABI = [
 const ROUTER_ADDRESS = '0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24'; // UniswapV2 Router on Base
 const WETH_ADDRESS = '0x4200000000000000000000000000000000000006';  // Wrapped ETH on Base
 
-// Token Addresses on Base
-const TOKEN_ADDRESSES: { [key: string]: string } = {
+// Token Addresses on Base - making this exportable
+export const TOKEN_ADDRESSES: { [key: string]: string } = {
   'ETH': WETH_ADDRESS,
   'BRETT': '0x532f27101965dd16442e59d40670faf5ebb142e4', // Updated $BRETT address
   'QR': '0x6c1822168cf3f961f58e3249ba5f9f6b14c363d7',    // $QR
@@ -43,6 +44,9 @@ interface SwapParams {
 }
 
 class UniswapService {
+  // Making TOKEN_ADDRESSES accessible as a property
+  TOKEN_ADDRESSES = TOKEN_ADDRESSES;
+  
   async getTokenDecimals(tokenAddress: string): Promise<number> {
     if (!walletService.wallet?.provider) {
       throw new Error('No wallet provider available');
@@ -241,6 +245,16 @@ class UniswapService {
         description: error.message || 'Please try again'
       });
       return false;
+    }
+  }
+  
+  async getTokenPriceFromGecko(symbol: string): Promise<number | null> {
+    try {
+      const tokenPrice = await geckoTerminalService.getTokenPrice(symbol);
+      return tokenPrice ? tokenPrice.usd : null;
+    } catch (error) {
+      console.error('Error getting token price from GeckoTerminal:', error);
+      return null;
     }
   }
   
