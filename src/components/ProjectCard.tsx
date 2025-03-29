@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ExternalLinkIcon, ThumbsUpIcon, XIcon, ClockIcon, ShareIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { toast } from '@/components/ui/sonner';
+import { toast } from "sonner";
 import GlitchText from './GlitchText';
 
 export interface ProjectData {

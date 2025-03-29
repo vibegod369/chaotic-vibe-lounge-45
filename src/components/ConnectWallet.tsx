@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { WalletIcon, LogOutIcon } from 'lucide-react';
-import { toast } from '@/components/ui/sonner';
+import { toast } from "sonner";
 import GlitchText from './GlitchText';
 
 const ConnectWallet = () => {
