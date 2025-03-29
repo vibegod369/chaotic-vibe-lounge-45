@@ -2,8 +2,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowDownIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import TokenTicker from "@/components/TokenTicker";
 import DealRoom from "@/components/DealRoom";
 import VibeContributor from "@/components/VibeContributor";
@@ -21,9 +19,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
+    <>
       {/* Hero Section */}
       <section className="min-h-screen pt-20 flex items-center relative overflow-hidden">
         <div className="container mx-auto px-4 py-20 relative z-10">
@@ -113,9 +109,7 @@ const Index = () => {
           </div>
         </div>
       </section>
-      
-      <Footer />
-    </div>
+    </>
   );
 };
 

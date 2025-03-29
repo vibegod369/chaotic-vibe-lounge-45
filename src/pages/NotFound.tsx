@@ -1,5 +1,9 @@
+
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import GlitchText from "@/components/GlitchText";
 
 const NotFound = () => {
   const location = useLocation();
@@ -12,13 +16,20 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="flex-grow flex items-center justify-center pt-20 pb-12">
       <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">404</h1>
-        <p className="text-xl text-gray-600 mb-4">Oops! Page not found</p>
-        <a href="/" className="text-blue-500 hover:text-blue-700 underline">
-          Return to Home
-        </a>
+        <h1 className="text-8xl font-bold mb-6 text-vibe-pink">
+          <GlitchText text="404" color="pink" intensity="high" />
+        </h1>
+        <p className="text-xl text-vibe-neon mb-8">CHAOS DETECTED: PAGE NOT FOUND</p>
+        <div className="max-w-md mx-auto mb-8 p-4 border border-vibe-blue/30 bg-vibe-dark/50 rounded">
+          <p className="text-gray-400 font-code text-sm">
+            The void has consumed: <span className="text-vibe-yellow">{location.pathname}</span>
+          </p>
+        </div>
+        <Button asChild className="button-chaos">
+          <Link to="/">Return to Controlled Chaos</Link>
+        </Button>
       </div>
     </div>
   );

@@ -10,26 +10,34 @@ import DealRoomPage from "./pages/DealRoomPage";
 import DaoPage from "./pages/DaoPage";
 import ForumsPage from "./pages/ForumsPage";
 import NotFound from "./pages/NotFound";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner position="bottom-right" theme="dark" closeButton />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/dex" element={<VibeDex />} />
-          <Route path="/deal-room" element={<DealRoomPage />} />
-          <Route path="/dao" element={<DaoPage />} />
-          <Route path="/forums" element={<ForumsPage />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <BrowserRouter>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner position="bottom-right" theme="dark" closeButton />
+        <div className="min-h-screen flex flex-col">
+          <Header />
+          <main className="flex-grow">
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/dex" element={<VibeDex />} />
+              <Route path="/deal-room" element={<DealRoomPage />} />
+              <Route path="/dao" element={<DaoPage />} />
+              <Route path="/forums" element={<ForumsPage />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </TooltipProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 
