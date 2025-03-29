@@ -78,6 +78,9 @@ const VibeDex = () => {
                 <div className="text-xs text-gray-400">
                   $590.28
                 </div>
+                <div className="text-xs text-gray-500 mt-2 font-code truncate">
+                  0x532f27101965dd16442e59d40670faf5ebb142e4
+                </div>
               </div>
               
               {/* QR/ETH */}
@@ -107,6 +110,9 @@ const VibeDex = () => {
                 </div>
                 <div className="text-xs text-gray-400">
                   $7.68
+                </div>
+                <div className="text-xs text-gray-500 mt-2 font-code truncate">
+                  0x6c1822168cf3f961f58e3249ba5f9f6b14c363d7
                 </div>
               </div>
               
@@ -138,6 +144,9 @@ const VibeDex = () => {
                 <div className="text-xs text-gray-400">
                   $5.52
                 </div>
+                <div className="text-xs text-gray-500 mt-2 font-code truncate">
+                  0x6966954da0b7f6be3e4c0fa64ed6f38ffde22322
+                </div>
               </div>
               
               {/* VIBE/ETH */}
@@ -167,6 +176,9 @@ const VibeDex = () => {
                 </div>
                 <div className="text-xs text-gray-400">
                   $0.73
+                </div>
+                <div className="text-xs text-gray-500 mt-2 font-code truncate">
+                  0x7048d52bab5c458e8127a0018cde59a3b3427f38
                 </div>
               </div>
             </div>

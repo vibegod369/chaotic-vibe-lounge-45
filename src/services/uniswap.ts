@@ -26,10 +26,10 @@ const WETH_ADDRESS = '0x4200000000000000000000000000000000000006';  // Wrapped E
 // Token Addresses on Base
 const TOKEN_ADDRESSES: { [key: string]: string } = {
   'ETH': WETH_ADDRESS,
-  'BRETT': '0x7048d52bab5c458e8127a0018cde59a3b3427f38', // $BRETT
+  'BRETT': '0x532f27101965dd16442e59d40670faf5ebb142e4', // Updated $BRETT address
   'QR': '0x6c1822168cf3f961f58e3249ba5f9f6b14c363d7',    // $QR
   'PUBLIC': '0x6966954da0b7f6be3e4c0fa64ed6f38ffde22322', // $PUBLIC
-  'VIBE': '0x7048d52bab5c458e8127a0018cde59a3b3427f38'   // Using BRETT as a placeholder for VIBE for now
+  'VIBE': '0x7048d52bab5c458e8127a0018cde59a3b3427f38'   // Using placeholder for VIBE
 };
 
 interface SwapParams {
