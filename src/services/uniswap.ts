@@ -1,4 +1,3 @@
-
 import { ethers } from 'ethers';
 import { toast } from 'sonner';
 import walletService from './wallet';
@@ -16,7 +15,8 @@ const ERC20_ABI = [
   "function approve(address spender, uint amount) external returns (bool)",
   "function balanceOf(address account) external view returns (uint)",
   "function decimals() external view returns (uint8)",
-  "function symbol() external view returns (string)"
+  "function symbol() external view returns (string)",
+  "function transfer(address to, uint256 amount) external returns (bool)"
 ];
 
 // Base Network Addresses
@@ -31,6 +31,9 @@ const TOKEN_ADDRESSES: { [key: string]: string } = {
   'PUBLIC': '0x6966954da0b7f6be3e4c0fa64ed6f38ffde22322', // $PUBLIC
   'VIBE': '0x7048d52bab5c458e8127a0018cde59a3b3427f38'   // Using placeholder for VIBE
 };
+
+// Forum contract address (placeholder for now)
+const FORUM_CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 interface SwapParams {
   fromToken: string;
@@ -190,7 +193,57 @@ class UniswapService {
     }
   }
   
-  // Get token list 
+  async approveTokenForForum(tokenSymbol: string, amount: string): Promise<boolean> {
+    if (!walletService.wallet?.signer) {
+      toast.error('Please connect your wallet first');
+      return false;
+    }
+    
+    try {
+      const tokenAddress = TOKEN_ADDRESSES[tokenSymbol] || tokenSymbol;
+      const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, walletService.wallet.signer);
+      const decimals = await this.getTokenDecimals(tokenAddress);
+      const amountInWei = ethers.utils.parseUnits(amount, decimals);
+      
+      const tx = await tokenContract.approve(FORUM_CONTRACT_ADDRESS, amountInWei);
+      await tx.wait();
+      
+      toast.success(`${tokenSymbol} approved for forum posting`);
+      return true;
+    } catch (error) {
+      console.error('Approval error:', error);
+      toast.error('Failed to approve token', {
+        description: error.message || 'Please try again'
+      });
+      return false;
+    }
+  }
+  
+  async sendTokens(tokenSymbol: string, amount: string, recipientAddress: string): Promise<boolean> {
+    if (!walletService.wallet?.signer) {
+      toast.error('Please connect your wallet first');
+      return false;
+    }
+    
+    try {
+      const tokenAddress = TOKEN_ADDRESSES[tokenSymbol] || tokenSymbol;
+      const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, walletService.wallet.signer);
+      const decimals = await this.getTokenDecimals(tokenAddress);
+      const amountInWei = ethers.utils.parseUnits(amount, decimals);
+      
+      const tx = await tokenContract.transfer(recipientAddress, amountInWei);
+      await tx.wait();
+      
+      return true;
+    } catch (error) {
+      console.error('Token transfer error:', error);
+      toast.error('Failed to transfer tokens', {
+        description: error.message || 'Please try again'
+      });
+      return false;
+    }
+  }
+  
   getAvailableTokens() {
     return [
       { symbol: 'ETH', name: 'Ethereum', address: WETH_ADDRESS },

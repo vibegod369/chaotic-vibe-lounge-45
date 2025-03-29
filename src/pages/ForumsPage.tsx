@@ -1,84 +1,227 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import GlitchText from "@/components/GlitchText";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, MessageCircle, Users, ThumbsUp, PenTool, Reply, ChevronRight } from 'lucide-react';
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { MessageSquare, MessageCircle, Users, ThumbsUp, PenTool, Reply, ChevronRight, AlertCircle } from 'lucide-react';
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ForumService } from '@/services/forum';
+import walletService from '@/services/wallet';
+import uniswapService from '@/services/uniswap';
 
 const ForumsPage = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [topics, setTopics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTopic, setActiveTopic] = useState(null);
+  const [replyContent, setReplyContent] = useState("");
+  const [newTopicTitle, setNewTopicTitle] = useState("");
+  const [newTopicContent, setNewTopicContent] = useState("");
+  const [newTopicCategory, setNewTopicCategory] = useState("vibe-coding");
+  const [showNewTopicDialog, setShowNewTopicDialog] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   
-  const handlePostReply = () => {
-    toast.info("Forum functionality coming soon", {
-      description: "This feature is under development.",
-    });
+  // Token approval states
+  const [tokenBalance, setTokenBalance] = useState('0');
+  const [isApproving, setIsApproving] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
+  
+  // Constants for token requirements
+  const TOKEN_REQUIRED_TO_POST = '0.01';
+  const TOKEN_REQUIRED_TO_REPLY = '0.005';
+  const TOKEN_SYMBOL = 'BRETT'; // Will be VIBE later
+  
+  useEffect(() => {
+    loadTopics();
+    checkTokenBalance();
+  }, []);
+  
+  useEffect(() => {
+    // Listen for wallet connection changes to update token balance
+    window.addEventListener('wallet-connected', checkTokenBalance);
+    window.addEventListener('wallet-disconnected', () => setTokenBalance('0'));
+    
+    return () => {
+      window.removeEventListener('wallet-connected', checkTokenBalance);
+      window.removeEventListener('wallet-disconnected', () => setTokenBalance('0'));
+    };
+  }, []);
+  
+  const checkTokenBalance = async () => {
+    if (!walletService.wallet?.address) return;
+    
+    try {
+      const balance = await uniswapService.getTokenBalance(
+        uniswapService.TOKEN_ADDRESSES[TOKEN_SYMBOL], 
+        walletService.wallet.address
+      );
+      setTokenBalance(balance);
+    } catch (error) {
+      console.error("Error fetching token balance:", error);
+      setTokenBalance('0');
+    }
+  };
+  
+  const loadTopics = async () => {
+    setLoading(true);
+    try {
+      const fetchedTopics = await ForumService.getTopics();
+      setTopics(fetchedTopics);
+    } catch (error) {
+      console.error("Error loading topics:", error);
+      toast.error("Failed to load forum topics", {
+        description: "Please try again later"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleViewTopic = async (topicId) => {
+    try {
+      const topic = await ForumService.getTopicById(topicId);
+      setActiveTopic(topic);
+    } catch (error) {
+      console.error("Error loading topic:", error);
+      toast.error("Failed to load topic details", {
+        description: "Please try again later"
+      });
+    }
+  };
+  
+  const handlePostReply = async () => {
+    if (!walletService.wallet) {
+      setShowAuthDialog(true);
+      return;
+    }
+    
+    if (!replyContent.trim()) {
+      toast.error("Reply cannot be empty");
+      return;
+    }
+    
+    // Check token balance
+    if (parseFloat(tokenBalance) < parseFloat(TOKEN_REQUIRED_TO_REPLY)) {
+      toast.error(`Insufficient ${TOKEN_SYMBOL} balance`, {
+        description: `You need at least ${TOKEN_REQUIRED_TO_REPLY} ${TOKEN_SYMBOL} to reply`
+      });
+      return;
+    }
+    
+    setIsPosting(true);
+    try {
+      await ForumService.postReply(activeTopic.id, replyContent, walletService.wallet.address);
+      
+      // Refresh topic data
+      const updatedTopic = await ForumService.getTopicById(activeTopic.id);
+      setActiveTopic(updatedTopic);
+      
+      setReplyContent("");
+      toast.success("Reply posted successfully!");
+      
+      // Refresh topics list to update counts
+      loadTopics();
+    } catch (error) {
+      console.error("Error posting reply:", error);
+      toast.error("Failed to post reply", {
+        description: error.message || "Please try again later"
+      });
+    } finally {
+      setIsPosting(false);
+    }
+  };
+  
+  const handleCreateTopic = async () => {
+    if (!walletService.wallet) {
+      setShowAuthDialog(true);
+      return;
+    }
+    
+    if (!newTopicTitle.trim() || !newTopicContent.trim()) {
+      toast.error("Title and content cannot be empty");
+      return;
+    }
+    
+    // Check token balance
+    if (parseFloat(tokenBalance) < parseFloat(TOKEN_REQUIRED_TO_POST)) {
+      toast.error(`Insufficient ${TOKEN_SYMBOL} balance`, {
+        description: `You need at least ${TOKEN_REQUIRED_TO_POST} ${TOKEN_SYMBOL} to create a topic`
+      });
+      return;
+    }
+    
+    setIsPosting(true);
+    try {
+      const newTopic = await ForumService.createTopic({
+        title: newTopicTitle,
+        content: newTopicContent,
+        category: newTopicCategory,
+        author: walletService.wallet.address
+      });
+      
+      setNewTopicTitle("");
+      setNewTopicContent("");
+      setShowNewTopicDialog(false);
+      
+      toast.success("Topic created successfully!");
+      
+      // Refresh topics list
+      await loadTopics();
+      
+      // Navigate to the new topic
+      handleViewTopic(newTopic.id);
+    } catch (error) {
+      console.error("Error creating topic:", error);
+      toast.error("Failed to create topic", {
+        description: error.message || "Please try again later"
+      });
+    } finally {
+      setIsPosting(false);
+    }
+  };
+  
+  const handleLike = async (itemId, type) => {
+    if (!walletService.wallet) {
+      setShowAuthDialog(true);
+      return;
+    }
+    
+    try {
+      if (type === 'topic') {
+        await ForumService.likeTopic(itemId);
+      } else {
+        await ForumService.likeReply(itemId);
+      }
+      
+      // Refresh topic if we're viewing it
+      if (activeTopic && (type === 'topic' && activeTopic.id === itemId)) {
+        const updatedTopic = await ForumService.getTopicById(activeTopic.id);
+        setActiveTopic(updatedTopic);
+      }
+      
+      // Refresh topics list
+      loadTopics();
+      
+      toast.success("Like added!");
+    } catch (error) {
+      console.error("Error liking item:", error);
+      toast.error("Failed to like", {
+        description: error.message || "Please try again later"
+      });
+    }
   };
   
   const categories = [
-    { id: "all", name: "All Topics", count: 254, icon: MessageSquare },
-    { id: "vibe-coding", name: "Vibe Coding", count: 87, icon: PenTool },
-    { id: "projects", name: "Projects", count: 56, icon: Users },
-    { id: "governance", name: "Governance", count: 34, icon: MessageCircle },
-  ];
-  
-  const topics = [
-    {
-      id: 1,
-      title: "How to optimize gas fees when deploying vibe-coded contracts?",
-      category: "vibe-coding",
-      author: "0x67ab...f412",
-      date: "2 hours ago",
-      replies: 12,
-      views: 89,
-      likes: 23,
-      isPinned: true,
-    },
-    {
-      id: 2,
-      title: "Share your craziest vibe-coded projects that actually worked",
-      category: "projects",
-      author: "0x45de...a823",
-      date: "1 day ago",
-      replies: 34,
-      views: 205,
-      likes: 45,
-      isHot: true,
-    },
-    {
-      id: 3,
-      title: "CDAO-5: Proposal to add multi-chain support for VIBE",
-      category: "governance",
-      author: "0x91fc...b734",
-      date: "3 days ago",
-      replies: 18,
-      views: 127,
-      likes: 31,
-    },
-    {
-      id: 4,
-      title: "Embracing glitches: How to debug vibe-coded smart contracts",
-      category: "vibe-coding",
-      author: "0x23ab...e567",
-      date: "4 days ago",
-      replies: 7,
-      views: 64,
-      likes: 15,
-    },
-    {
-      id: 5,
-      title: "Show off your chaos-inspired UI designs",
-      category: "projects",
-      author: "0x78cd...a123",
-      date: "5 days ago",
-      replies: 23,
-      views: 189,
-      likes: 37,
-    },
+    { id: "all", name: "All Topics", count: topics.length, icon: MessageSquare },
+    { id: "vibe-coding", name: "Vibe Coding", count: topics.filter(t => t.category === "vibe-coding").length, icon: PenTool },
+    { id: "projects", name: "Projects", count: topics.filter(t => t.category === "projects").length, icon: Users },
+    { id: "governance", name: "Governance", count: topics.filter(t => t.category === "governance").length, icon: MessageCircle },
   ];
   
   const filteredTopics = topics.filter(topic => 
@@ -86,10 +229,13 @@ const ForumsPage = () => {
     (searchQuery === "" || topic.title.toLowerCase().includes(searchQuery.toLowerCase()))
   );
   
+  // Return to topics list
+  const handleBackToTopics = () => {
+    setActiveTopic(null);
+  };
+  
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-      
       <main className="flex-grow pt-24">
         <section className="py-12 relative overflow-hidden">
           <div className="container mx-auto px-4">
@@ -101,6 +247,16 @@ const ForumsPage = () => {
                 The chaotic breeding ground for ideas, discussions, and community support.
                 Share your vibe-coding insights and learn from others in the chaos.
               </p>
+              
+              {walletService.wallet && (
+                <div className="mt-4 text-vibe-neon">
+                  <p>Your {TOKEN_SYMBOL} Balance: <span className="font-bold">{parseFloat(tokenBalance).toFixed(4)}</span></p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Cost per post: {TOKEN_REQUIRED_TO_POST} {TOKEN_SYMBOL} · 
+                    Cost per reply: {TOKEN_REQUIRED_TO_REPLY} {TOKEN_SYMBOL}
+                  </p>
+                </div>
+              )}
             </div>
             
             <div className="flex flex-col lg:flex-row gap-6">
@@ -137,25 +293,33 @@ const ForumsPage = () => {
                 
                 <div className="card-chaos p-5 backdrop-blur-md">
                   <h2 className="text-xl font-bold mb-4 text-vibe-pink">
-                    <GlitchText text="Community Stats" intensity="low" />
+                    <GlitchText text="Forum Stats" intensity="low" />
                   </h2>
                   
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400">Total Topics</span>
-                      <span className="text-white font-code">254</span>
+                      <span className="text-white font-code">{topics.length}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400">Total Posts</span>
-                      <span className="text-white font-code">1,892</span>
+                      <span className="text-white font-code">
+                        {topics.reduce((total, topic) => total + (topic.replies?.length || 0) + 1, 0)}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-400">Members</span>
-                      <span className="text-white font-code">783</span>
+                      <span className="text-gray-400">Active Users</span>
+                      <span className="text-white font-code">
+                        {new Set(topics.flatMap(topic => 
+                          [topic.author, ...(topic.replies?.map(r => r.author) || [])]
+                        )).size}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400">Online Now</span>
-                      <span className="text-vibe-neon font-code">42</span>
+                      <span className="text-vibe-neon font-code">
+                        {Math.floor(Math.random() * 10) + 30}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -163,167 +327,306 @@ const ForumsPage = () => {
               
               {/* Main Forum Content */}
               <div className="w-full lg:w-3/4">
-                <div className="card-chaos p-5 backdrop-blur-md mb-6">
-                  <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-4">
-                    <Input
-                      placeholder="Search topics..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-black/30 border-vibe-neon/30 focus:border-vibe-neon"
-                    />
-                    <Button className="button-chaos group whitespace-nowrap">
-                      <PenTool className="mr-2 h-4 w-4" />
-                      <span>New Topic</span>
-                    </Button>
+                {!activeTopic ? (
+                  // Topics List
+                  <div className="card-chaos p-5 backdrop-blur-md mb-6">
+                    <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-4">
+                      <Input
+                        placeholder="Search topics..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="bg-black/30 border-vibe-neon/30 focus:border-vibe-neon"
+                      />
+                      <Dialog open={showNewTopicDialog} onOpenChange={setShowNewTopicDialog}>
+                        <DialogTrigger asChild>
+                          <Button className="button-chaos group whitespace-nowrap">
+                            <PenTool className="mr-2 h-4 w-4" />
+                            <span>New Topic</span>
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="bg-black/90 border border-vibe-neon/30 text-white">
+                          <DialogHeader>
+                            <DialogTitle className="text-vibe-neon">Create New Topic</DialogTitle>
+                            <DialogDescription className="text-gray-400">
+                              Cost: {TOKEN_REQUIRED_TO_POST} {TOKEN_SYMBOL}
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          <div className="space-y-4 my-4">
+                            <div>
+                              <label className="text-sm text-gray-300 mb-1 block">Title</label>
+                              <Input
+                                placeholder="Topic title"
+                                value={newTopicTitle}
+                                onChange={(e) => setNewTopicTitle(e.target.value)}
+                                className="bg-black/50 border-vibe-blue/30"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="text-sm text-gray-300 mb-1 block">Category</label>
+                              <select 
+                                value={newTopicCategory}
+                                onChange={(e) => setNewTopicCategory(e.target.value)}
+                                className="w-full bg-black/50 border border-vibe-blue/30 rounded-md px-3 py-2 text-white"
+                              >
+                                <option value="vibe-coding">Vibe Coding</option>
+                                <option value="projects">Projects</option>
+                                <option value="governance">Governance</option>
+                              </select>
+                            </div>
+                            
+                            <div>
+                              <label className="text-sm text-gray-300 mb-1 block">Content</label>
+                              <Textarea
+                                placeholder="Write your post here..."
+                                value={newTopicContent}
+                                onChange={(e) => setNewTopicContent(e.target.value)}
+                                className="bg-black/50 border-vibe-blue/30 min-h-[150px]"
+                              />
+                            </div>
+                            
+                            {parseFloat(tokenBalance) < parseFloat(TOKEN_REQUIRED_TO_POST) && (
+                              <div className="flex items-center gap-2 text-vibe-yellow bg-vibe-yellow/10 p-2 rounded">
+                                <AlertCircle className="h-4 w-4" />
+                                <span className="text-sm">You need at least {TOKEN_REQUIRED_TO_POST} {TOKEN_SYMBOL} to post</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <DialogFooter>
+                            <Button 
+                              variant="outline" 
+                              onClick={() => setShowNewTopicDialog(false)}
+                              className="border-gray-600 text-gray-400"
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              className="bg-vibe-neon text-black hover:bg-vibe-neon/90"
+                              onClick={handleCreateTopic}
+                              disabled={isPosting || !walletService.wallet || parseFloat(tokenBalance) < parseFloat(TOKEN_REQUIRED_TO_POST)}
+                            >
+                              {isPosting ? "Creating..." : "Create Topic"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                      {loading ? (
+                        <div className="text-center py-8">
+                          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-vibe-neon border-r-transparent"></div>
+                          <p className="mt-2 text-gray-400">Loading forum topics...</p>
+                        </div>
+                      ) : filteredTopics.length === 0 ? (
+                        <div className="text-center py-8">
+                          <p className="text-gray-400">No topics found</p>
+                          {searchQuery && (
+                            <p className="mt-2 text-gray-500">Try a different search term</p>
+                          )}
+                        </div>
+                      ) : (
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-vibe-pink/30">
+                              <th className="text-left py-3 px-2 text-gray-400">Topic</th>
+                              <th className="text-center py-3 px-2 text-gray-400 hidden md:table-cell">Replies</th>
+                              <th className="text-center py-3 px-2 text-gray-400 hidden md:table-cell">Views</th>
+                              <th className="text-center py-3 px-2 text-gray-400 hidden md:table-cell">Likes</th>
+                              <th className="text-right py-3 px-2 text-gray-400">Activity</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredTopics.map(topic => (
+                              <tr key={topic.id} className="border-b border-vibe-neon/10 hover:bg-vibe-neon/5 transition-colors">
+                                <td className="py-4 px-2">
+                                  <div className="flex flex-col">
+                                    <div className="flex items-center">
+                                      {topic.isPinned && (
+                                        <span className="inline-block bg-vibe-yellow/20 text-vibe-yellow text-xs px-2 py-0.5 rounded mr-2">
+                                          Pinned
+                                        </span>
+                                      )}
+                                      {topic.isHot && (
+                                        <span className="inline-block bg-vibe-pink/20 text-vibe-pink text-xs px-2 py-0.5 rounded mr-2">
+                                          Hot
+                                        </span>
+                                      )}
+                                      <button 
+                                        className="text-white hover:text-vibe-neon transition-colors text-left"
+                                        onClick={() => handleViewTopic(topic.id)}
+                                      >
+                                        {topic.title}
+                                      </button>
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      By {topic.author?.slice(0, 6)}...{topic.author?.slice(-4)} • {topic.date}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-4 px-2 text-center text-gray-300 hidden md:table-cell">
+                                  {topic.replies?.length || 0}
+                                </td>
+                                <td className="py-4 px-2 text-center text-gray-300 hidden md:table-cell">
+                                  {topic.views || 0}
+                                </td>
+                                <td className="py-4 px-2 text-center text-gray-300 hidden md:table-cell">
+                                  {topic.likes || 0}
+                                </td>
+                                <td className="py-4 px-2 text-right">
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className="text-vibe-blue hover:text-vibe-neon hover:bg-transparent"
+                                    onClick={() => handleViewTopic(topic.id)}
+                                  >
+                                    <ChevronRight className="h-4 w-4" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
                   </div>
-                  
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-vibe-pink/30">
-                          <th className="text-left py-3 px-2 text-gray-400">Topic</th>
-                          <th className="text-center py-3 px-2 text-gray-400 hidden md:table-cell">Replies</th>
-                          <th className="text-center py-3 px-2 text-gray-400 hidden md:table-cell">Views</th>
-                          <th className="text-center py-3 px-2 text-gray-400 hidden md:table-cell">Likes</th>
-                          <th className="text-right py-3 px-2 text-gray-400">Activity</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredTopics.map(topic => (
-                          <tr key={topic.id} className="border-b border-vibe-neon/10 hover:bg-vibe-neon/5 transition-colors">
-                            <td className="py-4 px-2">
-                              <div className="flex flex-col">
-                                <div className="flex items-center">
-                                  {topic.isPinned && (
-                                    <span className="inline-block bg-vibe-yellow/20 text-vibe-yellow text-xs px-2 py-0.5 rounded mr-2">
-                                      Pinned
-                                    </span>
-                                  )}
-                                  {topic.isHot && (
-                                    <span className="inline-block bg-vibe-pink/20 text-vibe-pink text-xs px-2 py-0.5 rounded mr-2">
-                                      Hot
-                                    </span>
-                                  )}
-                                  <a href="#" className="text-white hover:text-vibe-neon transition-colors">
-                                    {topic.title}
-                                  </a>
+                ) : (
+                  // Single Topic View
+                  <div className="card-chaos p-5 backdrop-blur-md">
+                    <div className="flex justify-between items-start mb-4">
+                      <Button 
+                        variant="ghost" 
+                        className="text-gray-400 hover:text-white mb-4"
+                        onClick={handleBackToTopics}
+                      >
+                        ← Back to Topics
+                      </Button>
+                      
+                      {activeTopic.isPinned && (
+                        <span className="text-xs font-code bg-vibe-yellow/10 text-vibe-yellow px-2 py-1 rounded">
+                          Pinned
+                        </span>
+                      )}
+                    </div>
+                    
+                    <h2 className="text-xl font-bold text-vibe-neon mb-4">
+                      <GlitchText text={activeTopic.title} intensity="low" />
+                    </h2>
+                    
+                    <div className="bg-black/30 border border-vibe-neon/20 rounded-lg p-4 mb-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 rounded-full bg-vibe-neon/20 border border-vibe-neon/40 flex items-center justify-center mr-2">
+                            <span className="text-vibe-neon font-bold text-sm">
+                              {activeTopic.author?.slice(0, 1).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="text-vibe-neon">
+                              {activeTopic.author?.slice(0, 6)}...{activeTopic.author?.slice(-4)}
+                            </div>
+                            <div className="text-xs text-gray-400">Posted {activeTopic.date}</div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-gray-400 hover:text-vibe-neon"
+                            onClick={() => handleLike(activeTopic.id, 'topic')}
+                          >
+                            <ThumbsUp className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="text-gray-300">
+                        {activeTopic.content}
+                      </div>
+                    </div>
+                    
+                    {/* Replies */}
+                    {activeTopic.replies && activeTopic.replies.length > 0 && (
+                      <div className="mb-4">
+                        <h3 className="text-lg font-semibold text-vibe-blue mb-3">Replies</h3>
+                        
+                        {activeTopic.replies.map((reply, index) => (
+                          <div key={reply.id} className="bg-black/30 border border-vibe-blue/20 rounded-lg p-4 mb-4 ml-8">
+                            <div className="flex justify-between items-center mb-3">
+                              <div className="flex items-center">
+                                <div className="w-8 h-8 rounded-full bg-vibe-blue/20 border border-vibe-blue/40 flex items-center justify-center mr-2">
+                                  <span className="text-vibe-blue font-bold text-sm">
+                                    {reply.author?.slice(0, 1).toUpperCase()}
+                                  </span>
                                 </div>
-                                <div className="text-xs text-gray-500 mt-1">
-                                  By {topic.author} • {topic.date}
+                                <div>
+                                  <div className="text-vibe-blue">
+                                    {reply.author?.slice(0, 6)}...{reply.author?.slice(-4)}
+                                  </div>
+                                  <div className="text-xs text-gray-400">Posted {reply.date}</div>
                                 </div>
                               </div>
-                            </td>
-                            <td className="py-4 px-2 text-center text-gray-300 hidden md:table-cell">
-                              {topic.replies}
-                            </td>
-                            <td className="py-4 px-2 text-center text-gray-300 hidden md:table-cell">
-                              {topic.views}
-                            </td>
-                            <td className="py-4 px-2 text-center text-gray-300 hidden md:table-cell">
-                              {topic.likes}
-                            </td>
-                            <td className="py-4 px-2 text-right">
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                className="text-vibe-blue hover:text-vibe-neon hover:bg-transparent"
-                              >
-                                <ChevronRight className="h-4 w-4" />
-                              </Button>
-                            </td>
-                          </tr>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-gray-400 hover:text-vibe-neon"
+                                  onClick={() => handleLike(reply.id, 'reply')}
+                                >
+                                  <ThumbsUp className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            <div className="text-gray-300">
+                              {reply.content}
+                            </div>
+                          </div>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                
-                {/* Featured Topic Preview */}
-                <div className="card-chaos p-5 backdrop-blur-md">
-                  <div className="flex justify-between items-start mb-4">
-                    <h2 className="text-xl font-bold text-vibe-neon">
-                      <GlitchText text="How to optimize gas fees when deploying vibe-coded contracts?" intensity="low" />
-                    </h2>
-                    <span className="text-xs font-code bg-vibe-yellow/10 text-vibe-yellow px-2 py-1 rounded">
-                      Pinned
-                    </span>
-                  </div>
-                  
-                  <div className="bg-black/30 border border-vibe-neon/20 rounded-lg p-4 mb-4">
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-vibe-neon/20 border border-vibe-neon/40 flex items-center justify-center mr-2">
-                          <span className="text-vibe-neon font-bold text-sm">V</span>
-                        </div>
-                        <div>
-                          <div className="text-vibe-neon">0x67ab...f412</div>
-                          <div className="text-xs text-gray-400">Posted 2 hours ago</div>
-                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-vibe-neon">
-                          <ThumbsUp className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-vibe-blue">
-                          <Reply className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
+                    )}
                     
-                    <div className="text-gray-300">
-                      <p>I've been experimenting with deploying contracts using vibe coding principles, but the gas fees are killing me. Has anyone found some good tricks to optimize?</p>
-                      <p className="mt-2">I've tried a few things like:</p>
-                      <ul className="list-disc pl-5 mt-2 space-y-1">
-                        <li>Reducing storage variables where possible</li>
-                        <li>Using bytes32 instead of strings</li>
-                        <li>Avoiding loops in core functions</li>
-                      </ul>
-                      <p className="mt-2">But I'm still seeing really high deployment costs. Any chaotic wisdom to share?</p>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-black/30 border border-vibe-blue/20 rounded-lg p-4 mb-4 ml-8">
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-vibe-blue/20 border border-vibe-blue/40 flex items-center justify-center mr-2">
-                          <span className="text-vibe-blue font-bold text-sm">C</span>
+                    {/* Reply Form */}
+                    <div className="bg-black/30 border border-vibe-neon/20 rounded-lg p-4">
+                      <Textarea 
+                        placeholder="Write your reply..." 
+                        className="bg-black/50 border-vibe-neon/30 focus:border-vibe-neon mb-3"
+                        value={replyContent}
+                        onChange={(e) => setReplyContent(e.target.value)}
+                      />
+                      
+                      {!walletService.wallet && (
+                        <div className="flex items-center gap-2 text-vibe-yellow bg-vibe-yellow/10 p-2 rounded mb-3">
+                          <AlertCircle className="h-4 w-4" />
+                          <span className="text-sm">Connect your wallet to reply</span>
                         </div>
-                        <div>
-                          <div className="text-vibe-blue">0x45de...a823</div>
-                          <div className="text-xs text-gray-400">Posted 1 hour ago</div>
+                      )}
+                      
+                      {walletService.wallet && parseFloat(tokenBalance) < parseFloat(TOKEN_REQUIRED_TO_REPLY) && (
+                        <div className="flex items-center gap-2 text-vibe-yellow bg-vibe-yellow/10 p-2 rounded mb-3">
+                          <AlertCircle className="h-4 w-4" />
+                          <span className="text-sm">You need at least {TOKEN_REQUIRED_TO_REPLY} {TOKEN_SYMBOL} to reply</span>
                         </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-vibe-neon">
-                          <ThumbsUp className="h-4 w-4" />
+                      )}
+                      
+                      <div className="flex justify-between items-center">
+                        <div className="text-sm text-gray-400">
+                          Cost: {TOKEN_REQUIRED_TO_REPLY} {TOKEN_SYMBOL}
+                        </div>
+                        <Button 
+                          className="border border-vibe-blue text-vibe-blue hover:bg-vibe-blue/20"
+                          onClick={handlePostReply}
+                          disabled={isPosting || !walletService.wallet || parseFloat(tokenBalance) < parseFloat(TOKEN_REQUIRED_TO_REPLY)}
+                        >
+                          <Reply className="mr-2 h-4 w-4" /> 
+                          {isPosting ? "Posting..." : "Post Reply"}
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-vibe-blue">
-                          <Reply className="h-4 w-4" />
-                        </Button>
                       </div>
-                    </div>
-                    
-                    <div className="text-gray-300">
-                      <p>Have you tried using assembly blocks for the gas-intensive operations? It's messy and chaotic, but it works!</p>
-                      <p className="mt-2">Also, consider breaking your contract into multiple smaller ones if you can. Deploy the core functionality first, then add features later.</p>
                     </div>
                   </div>
-                  
-                  <div className="bg-black/30 border border-vibe-neon/20 rounded-lg p-4">
-                    <Input 
-                      placeholder="Write your reply..." 
-                      className="bg-black/50 border-vibe-neon/30 focus:border-vibe-neon mb-3"
-                    />
-                    <div className="flex justify-end">
-                      <Button 
-                        className="border border-vibe-blue text-vibe-blue hover:bg-vibe-blue/20"
-                        onClick={handlePostReply}
-                      >
-                        <Reply className="mr-2 h-4 w-4" /> Post Reply
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -334,7 +637,30 @@ const ForumsPage = () => {
         </section>
       </main>
       
-      <Footer />
+      {/* Auth Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="bg-black/90 border border-vibe-neon/30 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-vibe-neon">Connect Wallet</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              You need to connect your wallet to interact with the forum.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex justify-center my-4">
+            <Button 
+              className="bg-vibe-neon text-black hover:bg-vibe-neon/90"
+              onClick={async () => {
+                await walletService.connect();
+                setShowAuthDialog(false);
+                checkTokenBalance();
+              }}
+            >
+              Connect Wallet
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
