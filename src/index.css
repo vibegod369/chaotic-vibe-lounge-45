@@ -218,4 +218,10 @@
     90% { transform: translate(10%, 5%); }
     100% { transform: translate(5%, 0); }
   }
+  
+  @keyframes slide-right {
+    0% { transform: translateX(0); }
+    50% { transform: translateX(5px); }
+    100% { transform: translateX(0); }
+  }
 }

@@ -1,30 +1,61 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { WalletIcon, LogOutIcon } from 'lucide-react';
 import { toast } from "sonner";
 import GlitchText from './GlitchText';
+import walletService, { walletEvents, WalletInfo } from '@/services/wallet';
 
 const ConnectWallet = () => {
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleConnect = () => {
-    // Simulated wallet connection
-    setTimeout(() => {
-      const randomAddress = `0x${Math.random().toString(16).slice(2, 12)}...${Math.random().toString(16).slice(2, 6)}`;
-      setAddress(randomAddress);
+  useEffect(() => {
+    // Initialize wallet state
+    const wallet = walletService.wallet;
+    if (wallet) {
       setConnected(true);
-      toast.success("Wallet connected successfully!", {
-        description: `Connected to ${randomAddress}`
-      });
-    }, 1000);
+      setAddress(shortenAddress(wallet.address));
+    }
+
+    // Set up event listeners
+    const handleConnect = (e: CustomEvent<WalletInfo>) => {
+      setConnected(true);
+      setAddress(shortenAddress(e.detail.address));
+    };
+
+    const handleDisconnect = () => {
+      setConnected(false);
+      setAddress("");
+    };
+
+    window.addEventListener(walletEvents.connected, handleConnect as EventListener);
+    window.addEventListener(walletEvents.disconnected, handleDisconnect);
+
+    return () => {
+      window.removeEventListener(walletEvents.connected, handleConnect as EventListener);
+      window.removeEventListener(walletEvents.disconnected, handleDisconnect);
+    };
+  }, []);
+
+  const shortenAddress = (address: string): string => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const handleConnect = async () => {
+    setIsLoading(true);
+    try {
+      await walletService.connect();
+    } catch (error) {
+      console.error('Connection error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDisconnect = () => {
-    setConnected(false);
-    setAddress("");
-    toast.info("Wallet disconnected");
+    walletService.disconnect();
   };
 
   if (connected) {
@@ -50,9 +81,10 @@ const ConnectWallet = () => {
     <Button 
       onClick={handleConnect} 
       className="button-chaos group"
+      disabled={isLoading}
     >
       <WalletIcon className="mr-2 h-4 w-4 group-hover:animate-shake" />
-      <GlitchText text="Connect Wallet" intensity="low" />
+      <GlitchText text={isLoading ? "Connecting..." : "Connect Wallet"} intensity="low" />
     </Button>
   );
 };

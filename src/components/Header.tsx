@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { MenuIcon, XIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
@@ -10,6 +10,7 @@ import GlitchText from './GlitchText';
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrollPosition, setScrollPosition] = useState(0);
+  const location = useLocation();
   
   useEffect(() => {
     const handleScroll = () => {
@@ -20,12 +21,17 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location.pathname]);
+
   const navLinks = [
     { name: 'Home', path: '/' },
-    { name: 'Vibe DEX', path: '#' },
-    { name: 'Deal Room', path: '#' },
-    { name: 'DAO', path: '#' },
-    { name: 'Forums', path: '#' },
+    { name: 'Vibe DEX', path: '/dex' },
+    { name: 'Deal Room', path: '/deal-room' },
+    { name: 'DAO', path: '/dao' },
+    { name: 'Forums', path: '/forums' },
   ];
 
   return (
@@ -56,12 +62,20 @@ const Header = () => {
               <Link 
                 key={link.name}
                 to={link.path}
-                className="px-3 py-2 text-sm font-medium relative overflow-hidden group"
+                className={cn(
+                  "px-3 py-2 text-sm font-medium relative overflow-hidden group",
+                  location.pathname === link.path 
+                    ? "text-vibe-neon" 
+                    : "text-white hover:text-vibe-neon transition-colors"
+                )}
               >
-                <span className="relative z-10 group-hover:text-vibe-neon transition-colors">
+                <span className="relative z-10">
                   {link.name}
                 </span>
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-vibe-neon group-hover:w-full transition-all duration-300"></span>
+                <span className={cn(
+                  "absolute bottom-0 left-0 h-0.5 bg-vibe-neon transition-all duration-300",
+                  location.pathname === link.path ? "w-full" : "w-0 group-hover:w-full"
+                )}></span>
               </Link>
             ))}
             <ConnectWallet />
@@ -92,8 +106,10 @@ const Header = () => {
             <Link 
               key={link.name}
               to={link.path}
-              className="px-4 py-3 text-lg font-medium border-b border-vibe-neon/20 hover:bg-vibe-neon/10 transition-colors"
-              onClick={() => setIsMenuOpen(false)}
+              className={cn(
+                "px-4 py-3 text-lg font-medium border-b border-vibe-neon/20 hover:bg-vibe-neon/10 transition-colors",
+                location.pathname === link.path ? "text-vibe-neon bg-vibe-neon/10" : "text-white"
+              )}
             >
               {link.name}
             </Link>

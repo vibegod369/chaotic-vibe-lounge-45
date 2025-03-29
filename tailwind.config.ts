@@ -193,6 +193,11 @@ export default {
 					'50%': { 
 						boxShadow: '0 0 15px #00ff8c, 0 0 25px #00ff8c, 0 0 35px #00ff8c, 0 0 45px #00ff8c'
 					}
+				},
+				'slide-right': {
+					'0%': { transform: 'translateX(0)' },
+					'50%': { transform: 'translateX(5px)' },
+					'100%': { transform: 'translateX(0)' }
 				}
 			},
 			animation: {
@@ -202,7 +207,8 @@ export default {
 				'noise': 'noise 8s linear infinite',
 				'float': 'float 6s ease-in-out infinite',
 				'shake': 'shake 0.5s ease-in-out',
-				'pulse-neon': 'pulse-neon 2s infinite'
+				'pulse-neon': 'pulse-neon 2s infinite',
+				'slide-right': 'slide-right 1s ease-in-out infinite'
 			},
 			fontFamily: {
 				'glitch': ['"VT323"', 'monospace'],
