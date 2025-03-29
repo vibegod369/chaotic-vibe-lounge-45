@@ -1,15 +1,88 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TokenTicker from "@/components/TokenTicker";
 import GlitchText from "@/components/GlitchText";
 import SwapInterface from "@/components/SwapInterface";
 import PriceChart from "@/components/PriceChart";
 import TradingViewChart from "@/components/TradingViewChart";
 import Orderbook from "@/components/Orderbook";
+import geckoTerminalService from '@/services/geckoTerminal';
+
+interface TokenPrice {
+  symbol: string;
+  usd: number;
+  eth: number;
+}
 
 const VibeDex = () => {
   const [selectedPair, setSelectedPair] = useState("BRETT");
   const [baseToken, setBaseToken] = useState("ETH");
+  const [tokenPrices, setTokenPrices] = useState<Record<string, TokenPrice>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch token prices on component mount
+  useEffect(() => {
+    const fetchPrices = async () => {
+      setIsLoading(true);
+      const tokens = ['BRETT', 'QR', 'PUBLIC', 'VIBE'];
+      const prices: Record<string, TokenPrice> = {};
+      
+      // Fetch prices for all tokens
+      for (const symbol of tokens) {
+        try {
+          const price = await geckoTerminalService.getTokenPrice(symbol);
+          if (price) {
+            prices[symbol] = {
+              symbol,
+              usd: price.usd,
+              eth: price.eth
+            };
+            console.log(`${symbol} price: $${price.usd}, ${price.eth} ETH`);
+          } else {
+            // Fallback prices
+            prices[symbol] = {
+              symbol,
+              usd: symbol === 'BRETT' ? 0.03041 : symbol === 'QR' ? 0.00419 : symbol === 'PUBLIC' ? 0.00335 : 0.00073,
+              eth: symbol === 'BRETT' ? 0.00001815 : symbol === 'QR' ? 0.0000025 : symbol === 'PUBLIC' ? 0.000002 : 0.0000002
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching price for ${symbol}:`, error);
+          // Fallback prices
+          prices[symbol] = {
+            symbol,
+            usd: symbol === 'BRETT' ? 0.03041 : symbol === 'QR' ? 0.00419 : symbol === 'PUBLIC' ? 0.00335 : 0.00073,
+            eth: symbol === 'BRETT' ? 0.00001815 : symbol === 'QR' ? 0.0000025 : symbol === 'PUBLIC' ? 0.000002 : 0.0000002
+          };
+        }
+      }
+      
+      setTokenPrices(prices);
+      setIsLoading(false);
+    };
+    
+    fetchPrices();
+    
+    // Refresh prices every minute
+    const interval = setInterval(fetchPrices, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  // Fallback values for percentages and addresses (to be replaced with real data later)
+  const tokenChanges = {
+    'BRETT': +8.4,
+    'QR': -2.1,
+    'PUBLIC': +12.7,
+    'VIBE': +13.4
+  };
+  
+  const tokenAddresses = {
+    'BRETT': '0x532f27101965dd16442e59d40670faf5ebb142e4',
+    'QR': '0x6c1822168cf3f961f58e3249ba5f9f6b14c363d7',
+    'PUBLIC': '0x6966954da0b7f6be3e4c0fa64ed6f38ffde22322',
+    'VIBE': '0x7048d52bab5c458e8127a0018cde59a3b3427f38'
+  };
   
   return (
     <main className="flex-grow pt-24">
@@ -68,18 +141,18 @@ const VibeDex = () => {
                       <p className="text-xs text-gray-400">Brett Token</p>
                     </div>
                   </div>
-                  <div className="text-vibe-neon">
-                    +8.4%
+                  <div className={tokenChanges.BRETT >= 0 ? "text-vibe-neon" : "text-vibe-pink"}>
+                    {tokenChanges.BRETT > 0 ? '+' : ''}{tokenChanges.BRETT}%
                   </div>
                 </div>
                 <div className="text-xl font-bold font-code">
-                  0.32 ETH
+                  {tokenPrices.BRETT ? tokenPrices.BRETT.eth.toFixed(10) : '0.00001815'} ETH
                 </div>
                 <div className="text-xs text-gray-400">
-                  $590.28
+                  ${tokenPrices.BRETT ? tokenPrices.BRETT.usd.toFixed(6) : '0.03041'}
                 </div>
                 <div className="text-xs text-gray-500 mt-2 font-code truncate">
-                  0x532f27101965dd16442e59d40670faf5ebb142e4
+                  {tokenAddresses.BRETT}
                 </div>
               </div>
               
@@ -101,18 +174,18 @@ const VibeDex = () => {
                       <p className="text-xs text-gray-400">QR Token</p>
                     </div>
                   </div>
-                  <div className="text-vibe-pink">
-                    -2.1%
+                  <div className={tokenChanges.QR >= 0 ? "text-vibe-neon" : "text-vibe-pink"}>
+                    {tokenChanges.QR > 0 ? '+' : ''}{tokenChanges.QR}%
                   </div>
                 </div>
                 <div className="text-xl font-bold font-code">
-                  0.0045 ETH
+                  {tokenPrices.QR ? tokenPrices.QR.eth.toFixed(10) : '0.0000025'} ETH
                 </div>
                 <div className="text-xs text-gray-400">
-                  $7.68
+                  ${tokenPrices.QR ? tokenPrices.QR.usd.toFixed(6) : '0.00419'}
                 </div>
                 <div className="text-xs text-gray-500 mt-2 font-code truncate">
-                  0x6c1822168cf3f961f58e3249ba5f9f6b14c363d7
+                  {tokenAddresses.QR}
                 </div>
               </div>
               
@@ -134,18 +207,18 @@ const VibeDex = () => {
                       <p className="text-xs text-gray-400">Public Token</p>
                     </div>
                   </div>
-                  <div className="text-vibe-neon">
-                    +12.7%
+                  <div className={tokenChanges.PUBLIC >= 0 ? "text-vibe-neon" : "text-vibe-pink"}>
+                    {tokenChanges.PUBLIC > 0 ? '+' : ''}{tokenChanges.PUBLIC}%
                   </div>
                 </div>
                 <div className="text-xl font-bold font-code">
-                  0.003 ETH
+                  {tokenPrices.PUBLIC ? tokenPrices.PUBLIC.eth.toFixed(10) : '0.000002'} ETH
                 </div>
                 <div className="text-xs text-gray-400">
-                  $5.52
+                  ${tokenPrices.PUBLIC ? tokenPrices.PUBLIC.usd.toFixed(6) : '0.00335'}
                 </div>
                 <div className="text-xs text-gray-500 mt-2 font-code truncate">
-                  0x6966954da0b7f6be3e4c0fa64ed6f38ffde22322
+                  {tokenAddresses.PUBLIC}
                 </div>
               </div>
               
@@ -167,18 +240,18 @@ const VibeDex = () => {
                       <p className="text-xs text-gray-400">Vibe Token</p>
                     </div>
                   </div>
-                  <div className="text-vibe-neon">
-                    +13.4%
+                  <div className={tokenChanges.VIBE >= 0 ? "text-vibe-neon" : "text-vibe-pink"}>
+                    {tokenChanges.VIBE > 0 ? '+' : ''}{tokenChanges.VIBE}%
                   </div>
                 </div>
                 <div className="text-xl font-bold font-code">
-                  0.0004 ETH
+                  {tokenPrices.VIBE ? tokenPrices.VIBE.eth.toFixed(10) : '0.0000002'} ETH
                 </div>
                 <div className="text-xs text-gray-400">
-                  $0.73
+                  ${tokenPrices.VIBE ? tokenPrices.VIBE.usd.toFixed(6) : '0.00073'}
                 </div>
                 <div className="text-xs text-gray-500 mt-2 font-code truncate">
-                  0x7048d52bab5c458e8127a0018cde59a3b3427f38
+                  {tokenAddresses.VIBE}
                 </div>
               </div>
             </div>

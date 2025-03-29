@@ -31,10 +31,10 @@ class GeckoTerminalService {
   
   // Mapping of token symbols to GeckoTerminal token IDs
   private tokenIds: Record<string, string> = {
-    'BRETT': 'based-brett',
-    'QR': '0x6c1822168cf3f961f58e3249ba5f9f6b14c363d7',
-    'PUBLIC': '0x6966954da0b7f6be3e4c0fa64ed6f38ffde22322',
-    'VIBE': '0x7048d52bab5c458e8127a0018cde59a3b3427f38'
+    'BRETT': 'base/0x532f27101965dd16442e59d40670faf5ebb142e4',
+    'QR': 'base/0x6c1822168cf3f961f58e3249ba5f9f6b14c363d7',
+    'PUBLIC': 'base/0x6966954da0b7f6be3e4c0fa64ed6f38ffde22322',
+    'VIBE': 'base/0x7048d52bab5c458e8127a0018cde59a3b3427f38'
   };
   
   /**
@@ -57,30 +57,32 @@ class GeckoTerminalService {
         return null;
       }
       
-      let endpoint;
-      
-      // Use different endpoints depending on whether we have a token ID or address
-      if (tokenId.startsWith('0x')) {
-        endpoint = `/networks/base/tokens/${tokenId}`;
-      } else {
-        endpoint = `/simple/tokens/${tokenId}`;
-      }
+      // Using the networks/{network}/tokens/{address} endpoint format
+      const endpoint = `/networks/tokens/${tokenId}`;
+      console.log(`Fetching token price from: ${this.baseUrl}${endpoint}`);
       
       const response = await fetch(`${this.baseUrl}${endpoint}`);
       
       if (!response.ok) {
+        console.error(`GeckoTerminal API error: ${response.status} for ${endpoint}`);
         throw new Error(`GeckoTerminal API error: ${response.status}`);
       }
       
       const data = await response.json();
       const tokenData = data.data.attributes;
       
+      // Log the response data for debugging
+      console.log('GeckoTerminal response data:', tokenData);
+      
+      // Extract price data
       const price: TokenPrice = {
         symbol: cacheKey,
         usd: parseFloat(tokenData.price_usd || '0'),
         eth: parseFloat(tokenData.price_eth || tokenData.price_native || '0'),
         timestamp: now
       };
+      
+      console.log(`${symbol} price: $${price.usd} USD, ${price.eth} ETH`);
       
       // Cache the price
       this.priceCache.set(cacheKey, price);
@@ -120,18 +122,14 @@ class GeckoTerminalService {
           break;
       }
       
-      let endpoint;
-      
-      // Use different endpoints depending on whether we have a token ID or address
-      if (tokenId.startsWith('0x')) {
-        endpoint = `/networks/base/tokens/${tokenId}/ohlcv/${geckoTimeframe}`;
-      } else {
-        endpoint = `/tokens/${tokenId}/ohlcv/${geckoTimeframe}`;
-      }
+      // Using the updated endpoint format
+      const endpoint = `/networks/tokens/${tokenId}/ohlcv/${geckoTimeframe}`;
+      console.log(`Fetching price history from: ${this.baseUrl}${endpoint}`);
       
       const response = await fetch(`${this.baseUrl}${endpoint}`);
       
       if (!response.ok) {
+        console.error(`GeckoTerminal API error: ${response.status} for ${endpoint}`);
         throw new Error(`GeckoTerminal API error: ${response.status}`);
       }
       
