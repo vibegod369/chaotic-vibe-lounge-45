@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,14 +20,12 @@ interface OrderbookProps {
   quoteToken: string;
 }
 
-// UniswapV2 Pair ABI (simplified for what we need)
 const UNISWAP_PAIR_ABI = [
   "function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)",
   "function token0() external view returns (address)",
   "function token1() external view returns (address)"
 ];
 
-// UniswapV2 Factory ABI (simplified)
 const UNISWAP_FACTORY_ABI = [
   "function getPair(address tokenA, address tokenB) external view returns (address pair)"
 ];
@@ -45,7 +42,6 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
   const [pairAddress, setPairAddress] = useState<string | null>(null);
   const [usdRate, setUsdRate] = useState<number | null>(null);
   
-  // Fetch token price in USD
   useEffect(() => {
     const fetchUsdPrice = async () => {
       try {
@@ -64,20 +60,17 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
     return () => clearInterval(interval);
   }, []);
   
-  // Fetch the pair address and price data
   useEffect(() => {
     const fetchPairAndOrderbook = async () => {
       setIsLoading(true);
       
       try {
-        // Try to get token price directly from GeckoTerminal first
         const tokenPrice = await geckoTerminalService.getTokenPrice(baseToken);
         if (tokenPrice && tokenPrice.usd > 0) {
           console.log(`Direct token price from GeckoTerminal: $${tokenPrice.usd}`);
           setCurrentPriceUsd(tokenPrice.usd);
         }
         
-        // Get token addresses
         const baseTokenAddress = uniswapService.getAvailableTokens().find(t => t.symbol === baseToken)?.address;
         const quoteTokenAddress = uniswapService.getAvailableTokens().find(t => t.symbol === quoteToken)?.address;
         
@@ -85,16 +78,13 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
           throw new Error("Token addresses not found");
         }
         
-        // Get provider
         let provider;
         if (walletService.wallet?.provider) {
           provider = walletService.wallet.provider;
         } else {
-          // Fallback to a public provider for Base
           provider = new ethers.providers.JsonRpcProvider("https://mainnet.base.org");
         }
         
-        // Get the pair address from the factory
         const factory = new ethers.Contract(FACTORY_ADDRESS, UNISWAP_FACTORY_ABI, provider);
         const pairAddr = await factory.getPair(baseTokenAddress, quoteTokenAddress);
         
@@ -106,31 +96,25 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
         
         setPairAddress(pairAddr);
         
-        // Get pair contract
         const pair = new ethers.Contract(pairAddr, UNISWAP_PAIR_ABI, provider);
         const [reserves0, reserves1] = await pair.getReserves();
         const token0 = await pair.token0();
         
-        // Determine which reserve corresponds to which token
         const baseIsToken0 = baseTokenAddress.toLowerCase() === token0.toLowerCase();
         const baseReserve = baseIsToken0 ? reserves0 : reserves1;
         const quoteReserve = baseIsToken0 ? reserves1 : reserves0;
         
-        // Calculate the current price
         const price = quoteReserve.mul(ethers.utils.parseUnits("1", 18)).div(baseReserve);
         const basePrice = parseFloat(ethers.utils.formatUnits(price, 18));
         setCurrentPrice(basePrice);
         
-        // Set USD price if we have both the ETH price and the ETH/USD rate
         if (usdRate && basePrice) {
           setCurrentPriceUsd(basePrice * usdRate);
         }
         
-        // Generate orderbook based on the actual price
         generateOrderbookFromPrice(basePrice);
       } catch (error) {
         console.error("Error fetching pair data:", error);
-        // Fallback to mock data
         generateMockOrderbook();
       } finally {
         setIsLoading(false);
@@ -139,17 +123,14 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
     
     fetchPairAndOrderbook();
     
-    // Update periodically
     const interval = setInterval(() => {
       fetchPairAndOrderbook();
-    }, 30000); // Every 30 seconds
+    }, 30000);
     
     return () => clearInterval(interval);
   }, [baseToken, quoteToken, usdRate]);
   
-  // Generate mock orderbook data if no real data is available
   const generateMockOrderbook = async () => {
-    // Try to get real price from GeckoTerminal first
     let basePrice;
     let usdPrice = null;
     
@@ -160,42 +141,36 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
         usdPrice = tokenPrice.usd;
         console.log(`Using GeckoTerminal price for ${baseToken}: ${basePrice} ETH, $${usdPrice}`);
       } else {
-        // Fallback prices if API fails
-        if (baseToken === 'BRETT') basePrice = 0.00001815; // Approx ETH value for $0.03041
+        if (baseToken === 'BRETT') basePrice = 0.00001815;
         else if (baseToken === 'QR') basePrice = 0.0000025;
         else if (baseToken === 'PUBLIC') basePrice = 0.000002;
         else if (baseToken === 'VIBE') basePrice = 0.0000002;
-        else basePrice = 0.000001; // Default
+        else basePrice = 0.000001;
       }
     } catch (error) {
       console.error("Error getting token price from GeckoTerminal:", error);
-      // Fallback prices
-      if (baseToken === 'BRETT') basePrice = 0.00001815; // ~$0.03041 at ETH price of $1675
+      if (baseToken === 'BRETT') basePrice = 0.00001815;
       else if (baseToken === 'QR') basePrice = 0.0000025;
       else if (baseToken === 'PUBLIC') basePrice = 0.000002;
       else if (baseToken === 'VIBE') basePrice = 0.0000002;
-      else basePrice = 0.000001; // Default
+      else basePrice = 0.000001;
     }
     
     setCurrentPrice(basePrice);
     
-    // Set USD price if available
     if (usdPrice !== null) {
       setCurrentPriceUsd(usdPrice);
     } else if (usdRate) {
-      // Estimate USD price based on ETH rate
       setCurrentPriceUsd(basePrice * usdRate);
     }
     
     generateOrderbookFromPrice(basePrice);
   };
   
-  // Generate orderbook data based on a given price
   const generateOrderbookFromPrice = (basePrice: number) => {
     const newAsks: Order[] = [];
     const newBids: Order[] = [];
     
-    // Generate 10 ask orders (selling)
     let totalAsk = 0;
     for (let i = 0; i < 10; i++) {
       const price = basePrice * (1 + (i + 1) * 0.001);
@@ -211,7 +186,6 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
       });
     }
     
-    // Generate 10 bid orders (buying)
     let totalBid = 0;
     for (let i = 0; i < 10; i++) {
       const price = basePrice * (1 - (i + 1) * 0.001);
@@ -227,11 +201,9 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
       });
     }
     
-    // Sort orders properly
     newAsks.sort((a, b) => a.price - b.price);
     newBids.sort((a, b) => b.price - a.price);
     
-    // Calculate spread
     const lowestAsk = newAsks[0].price;
     const highestBid = newBids[0].price;
     const calculatedSpread = ((lowestAsk - highestBid) / lowestAsk) * 100;
@@ -247,12 +219,7 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
       return;
     }
     
-    toast({
-      title: "Buy Order Submitted",
-      description: `Buy order for ${baseToken} at ${currentPrice.toFixed(10)} ${quoteToken} ($${currentPriceUsd.toFixed(6)})`,
-    });
-    
-    // In a real implementation, this would initiate a swap transaction
+    toast.success(`Buy order for ${baseToken} at ${currentPrice.toFixed(10)} ${quoteToken} ($${currentPriceUsd.toFixed(6)})`);
   };
   
   const handleSell = () => {
@@ -261,12 +228,7 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
       return;
     }
     
-    toast({
-      title: "Sell Order Submitted",
-      description: `Sell order for ${baseToken} at ${currentPrice.toFixed(10)} ${quoteToken} ($${currentPriceUsd.toFixed(6)})`,
-    });
-    
-    // In a real implementation, this would initiate a swap transaction
+    toast.success(`Sell order for ${baseToken} at ${currentPrice.toFixed(10)} ${quoteToken} ($${currentPriceUsd.toFixed(6)})`);
   };
   
   const getMaxTotal = () => {
@@ -297,7 +259,6 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
           </div>
         ) : (
           <>
-            {/* Header */}
             <div className="grid grid-cols-4 px-3 py-1 font-code border-b border-vibe-blue/30 bg-black/40">
               <div>Price (ETH)</div>
               <div>Price (USD)</div>
@@ -305,14 +266,12 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
               <div className="text-right">Total</div>
             </div>
             
-            {/* Asks/Sell Orders */}
             <div className="max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-vibe-pink">
               {asks.map((order, index) => (
                 <div
                   key={`ask-${index}`}
                   className="grid grid-cols-4 px-3 py-1 font-code border-b border-vibe-pink/5 relative"
                 >
-                  {/* Background bar */}
                   <div 
                     className="absolute top-0 right-0 h-full bg-vibe-pink/5"
                     style={{ width: `${(order.total / maxTotal) * 100}%` }}
@@ -325,7 +284,6 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
               ))}
             </div>
             
-            {/* Current price */}
             <div className="grid grid-cols-2 px-3 py-2 font-code border-b border-vibe-neon/30 bg-black/60">
               <div>
                 <div className="text-vibe-neon font-bold">{currentPrice.toFixed(10)} ETH</div>
@@ -334,14 +292,12 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
               <div className="text-right text-gray-500">Spread: {spread}%</div>
             </div>
             
-            {/* Bids/Buy Orders */}
             <div className="max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-vibe-neon">
               {bids.map((order, index) => (
                 <div
                   key={`bid-${index}`}
                   className="grid grid-cols-4 px-3 py-1 font-code border-b border-vibe-neon/5 relative"
                 >
-                  {/* Background bar */}
                   <div 
                     className="absolute top-0 right-0 h-full bg-vibe-neon/5"
                     style={{ width: `${(order.total / maxTotal) * 100}%` }}
@@ -354,7 +310,6 @@ const Orderbook = ({ baseToken, quoteToken }: OrderbookProps) => {
               ))}
             </div>
             
-            {/* Action buttons */}
             <div className="grid grid-cols-2 gap-2 p-2 bg-black/40">
               <Button 
                 size="sm" 
