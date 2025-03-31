@@ -86,10 +86,10 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-3xl font-bold mb-6">
-              <GlitchText text="What is Vibe Coded Caos?" color="yellow" />
+              <GlitchText text="What is Vibe Coded Chaos?" color="yellow" />
             </h2>
             <p className="text-gray-300 mb-8">
-              Vibe Coded Caos DAO is a Web3 project designed to embrace the rough, spontaneous, and unrefined nature of vibe coding. 
+              Vibe Coded Chaos DAO is a Web3 project designed to embrace the rough, spontaneous, and unrefined nature of vibe coding. 
               It leverages the chaotic and resilient ethos of decentralized development to showcase the robustness of blockchain technology.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
