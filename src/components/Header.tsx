@@ -51,7 +51,7 @@ const Header = () => {
             </div>
             <div className="glitch-container">
               <h1 className="text-xl font-bold font-glitch">
-                <GlitchText text="VIBE CODED CAOS" intensity="low" />
+                <GlitchText text="VIBE CODED CHAOS" intensity="low" />
               </h1>
             </div>
           </Link>
