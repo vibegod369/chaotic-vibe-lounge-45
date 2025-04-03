@@ -45,7 +45,7 @@ const Index = () => {
                 <span className="mr-2">Launch App</span>
                 <ArrowDownIcon className="h-4 w-4 group-hover:animate-bounce" />
               </Button>
-              <Button variant="outline" className="border-vibe-pink text-vibe-pink hover:bg-vibe-pink/20 href="https://chatgpt.com/canvas/shared/67ee88be82248191be43be691f900a7b.
+              <Button variant="outline" className="border-vibe-pink text-vibe-pink hover:bg-vibe-pink/20 />
                 Read Whitepaper
               </Button>
             </div>
