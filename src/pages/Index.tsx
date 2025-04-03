@@ -34,8 +34,9 @@ const Index = () => {
               </span>
             </h1>
 
-            <p className="text-xl text-gray-300 mb-8 font-hand">
-              A celebration of the raw, unfiltered spirit of blockchain innovation.
+                 <p className="text-gray-300 mb-8">
+              Vibe Coded Chaos DAO is a Web3 project designed to embrace the rough, spontaneous, and unrefined nature of vibe coding. 
+              It leverages the chaotic and resilient ethos of decentralized development to showcase the robustness of blockchain technology.
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16">
@@ -65,10 +66,7 @@ const Index = () => {
       <section className="py-20 relative">
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row gap-10">
-                  <p className="text-gray-300 mb-8">
-              Vibe Coded Chaos DAO is a Web3 project designed to embrace the rough, spontaneous, and unrefined nature of vibe coding. 
-              It leverages the chaotic and resilient ethos of decentralized development to showcase the robustness of blockchain technology.
-            </p>
+        
             {/* Left Column - Deal Room */}
             <div className="w-full lg:w-2/3">
               <DealRoom />
