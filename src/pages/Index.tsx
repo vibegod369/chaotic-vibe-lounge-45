@@ -36,9 +36,7 @@ const Index = () => {
 
                  <p className="text-gray-300 mb-8">
               Vibe Coded Chaos DAO is designed to harness the rough, spontaneous, and unrefined nature of vibe coding. 
-              We embrace the chaotic and resilient ethos of decentralized technology to move forward without barriers or boundaries. No Dev. No VCs. No excuses, just fucking build something or go and flip burgers.
-            <br></br>
-            This project is work in progress, we have other jobs, Most of the site doesn't work - we know.</br>
+              We embrace the chaotic and resilient ethos of decentralized technology to move forward without barriers or boundaries. No Dev. No VCs. No excuses, just fucking build something or go and flip burgers. This project is work in progress, we have other jobs, Most of the site doesn't work - we know.</br>
                  </p>
 
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16">
