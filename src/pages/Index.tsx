@@ -53,7 +53,10 @@ const Index = () => {
             </div>
           </div>
         </div>
-
+  <p className="text-gray-300 mb-8">
+              Vibe Coded Chaos DAO is a Web3 project designed to embrace the rough, spontaneous, and unrefined nature of vibe coding. 
+              It leverages the chaotic and resilient ethos of decentralized development to showcase the robustness of blockchain technology.
+            </p>
         {/* Background elements */}
         <div className="absolute top-20 left-10 w-64 h-64 bg-vibe-pink/20 rounded-full blur-3xl"></div>
         <div className="absolute bottom-20 right-10 w-80 h-80 bg-vibe-blue/20 rounded-full blur-3xl"></div>
