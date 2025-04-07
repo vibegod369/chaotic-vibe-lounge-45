@@ -5,6 +5,7 @@ import { MenuIcon, XIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import ConnectWallet from './ConnectWallet';
+import ConnectSolanaWallet from './ConnectSolanaWallet';
 import GlitchText from './GlitchText';
 
 const Header = () => {
@@ -78,7 +79,10 @@ const Header = () => {
                 )}></span>
               </Link>
             ))}
-            <ConnectWallet />
+            <div className="flex items-center space-x-2">
+              <ConnectWallet />
+              <ConnectSolanaWallet />
+            </div>
           </nav>
           
           {/* Mobile Navigation */}
@@ -114,8 +118,9 @@ const Header = () => {
               {link.name}
             </Link>
           ))}
-          <div className="pt-4">
+          <div className="pt-4 flex flex-col space-y-3">
             <ConnectWallet />
+            <ConnectSolanaWallet />
           </div>
         </nav>
       </div>

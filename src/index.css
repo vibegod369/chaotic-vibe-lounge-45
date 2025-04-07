@@ -184,6 +184,52 @@
     transform: scale(0.97);
   }
 
+  /* Solana wallet adapter custom styles */
+  .wallet-adapter-button {
+    @apply relative px-6 py-3 font-bold uppercase tracking-wider border-2 border-vibe-yellow bg-transparent text-vibe-yellow transition-all overflow-hidden !rounded-md;
+    box-shadow: 0 0 10px rgba(255, 217, 0, 0.5);
+  }
+
+  .wallet-adapter-button:not([disabled]):hover {
+    @apply text-white bg-transparent;
+    box-shadow: 0 0 20px rgba(255, 217, 0, 0.7);
+  }
+
+  .wallet-adapter-button-trigger {
+    @apply bg-transparent;
+  }
+
+  .wallet-adapter-button:not([disabled]):hover .wallet-adapter-button-start-icon,
+  .wallet-adapter-button:not([disabled]):hover .wallet-adapter-button-end-icon {
+    @apply text-white;
+  }
+
+  .wallet-adapter-dropdown {
+    @apply inline-block;
+  }
+
+  .wallet-adapter-dropdown-list {
+    @apply bg-vibe-dark border border-vibe-yellow/50 rounded-md;
+  }
+
+  .wallet-adapter-dropdown-list-item {
+    @apply text-white hover:bg-vibe-yellow/20 transition-colors;
+  }
+
+  .wallet-adapter-modal-wrapper {
+    @apply bg-vibe-dark/90 backdrop-blur-lg border border-vibe-yellow/30;
+  }
+
+  .wallet-adapter-modal-button-close {
+    @apply bg-vibe-dark/80 text-vibe-yellow;
+  }
+
+  .wallet-adapter-modal-title {
+    @apply text-white;
+  }
+
+  /* End Solana wallet styles */
+
   @keyframes glitch-effect {
     0% {
       transform: translate(0);
