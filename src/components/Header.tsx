@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { MenuIcon, XIcon } from 'lucide-react';
+import { MenuIcon, XIcon, TwitterIcon, DiscordIcon, GitHubIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import ConnectWallet from './ConnectWallet';
@@ -27,12 +27,10 @@ const Header = () => {
     setIsMenuOpen(false);
   }, [location.pathname]);
 
-  const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Vibe DEX', path: '/dex' },
-    { name: 'Deal Room', path: '/deal-room' },
-    { name: 'DAO', path: '/dao' },
-    { name: 'Forums', path: '/forums' },
+  const socialLinks = [
+    { name: 'Twitter', icon: <TwitterIcon className="h-4 w-4" />, url: 'https://twitter.com/' },
+    { name: 'Discord', icon: <DiscordIcon className="h-4 w-4" />, url: 'https://discord.gg/' },
+    { name: 'GitHub', icon: <GitHubIcon className="h-4 w-4" />, url: 'https://github.com/' },
   ];
 
   return (
@@ -58,27 +56,23 @@ const Header = () => {
           </Link>
           
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
-            {navLinks.map((link) => (
-              <Link 
-                key={link.name}
-                to={link.path}
-                className={cn(
-                  "px-3 py-2 text-sm font-medium relative overflow-hidden group",
-                  location.pathname === link.path 
-                    ? "text-vibe-neon" 
-                    : "text-white hover:text-vibe-neon transition-colors"
-                )}
-              >
-                <span className="relative z-10">
-                  {link.name}
-                </span>
-                <span className={cn(
-                  "absolute bottom-0 left-0 h-0.5 bg-vibe-neon transition-all duration-300",
-                  location.pathname === link.path ? "w-full" : "w-0 group-hover:w-full"
-                )}></span>
-              </Link>
-            ))}
+          <nav className="hidden md:flex items-center space-x-3">
+            {/* Social Links */}
+            <div className="flex items-center space-x-1 mr-4">
+              {socialLinks.map((link) => (
+                <a
+                  key={link.name}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 text-gray-400 hover:text-vibe-neon transition-colors"
+                  aria-label={link.name}
+                >
+                  {link.icon}
+                </a>
+              ))}
+            </div>
+            
             <div className="flex items-center space-x-2">
               <ConnectWallet />
               <ConnectSolanaWallet />
@@ -105,24 +99,27 @@ const Header = () => {
           "md:hidden"
         )}
       >
-        <nav className="container mx-auto px-4 flex flex-col space-y-4">
-          {navLinks.map((link) => (
-            <Link 
-              key={link.name}
-              to={link.path}
-              className={cn(
-                "px-4 py-3 text-lg font-medium border-b border-vibe-neon/20 hover:bg-vibe-neon/10 transition-colors",
-                location.pathname === link.path ? "text-vibe-neon bg-vibe-neon/10" : "text-white"
-              )}
-            >
-              {link.name}
-            </Link>
-          ))}
+        <div className="container mx-auto px-4 flex flex-col space-y-6">
+          <div className="flex justify-center space-x-4 py-4">
+            {socialLinks.map((link) => (
+              <a
+                key={link.name}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 text-gray-400 hover:text-vibe-neon transition-colors"
+                aria-label={link.name}
+              >
+                {link.icon}
+              </a>
+            ))}
+          </div>
+          
           <div className="pt-4 flex flex-col space-y-3">
             <ConnectWallet />
             <ConnectSolanaWallet />
           </div>
-        </nav>
+        </div>
       </div>
     </header>
   );
