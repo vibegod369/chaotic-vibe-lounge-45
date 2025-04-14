@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { MenuIcon, XIcon, TwitterIcon, DiscordIcon, GitHubIcon } from 'lucide-react';
+import { MenuIcon, XIcon, TwitterIcon, DiscIcon, GithubIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import ConnectWallet from './ConnectWallet';
@@ -22,15 +21,14 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu when route changes
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location.pathname]);
 
   const socialLinks = [
     { name: 'Twitter', icon: <TwitterIcon className="h-4 w-4" />, url: 'https://twitter.com/' },
-    { name: 'Discord', icon: <DiscordIcon className="h-4 w-4" />, url: 'https://discord.gg/' },
-    { name: 'GitHub', icon: <GitHubIcon className="h-4 w-4" />, url: 'https://github.com/' },
+    { name: 'Discord', icon: <DiscIcon className="h-4 w-4" />, url: 'https://discord.gg/' },
+    { name: 'GitHub', icon: <GithubIcon className="h-4 w-4" />, url: 'https://github.com/' },
   ];
 
   return (
@@ -55,9 +53,7 @@ const Header = () => {
             </div>
           </Link>
           
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-3">
-            {/* Social Links */}
             <div className="flex items-center space-x-1 mr-4">
               {socialLinks.map((link) => (
                 <a
@@ -79,7 +75,6 @@ const Header = () => {
             </div>
           </nav>
           
-          {/* Mobile Navigation */}
           <Button 
             variant="ghost" 
             size="icon"
@@ -91,7 +86,6 @@ const Header = () => {
         </div>
       </div>
       
-      {/* Mobile Menu */}
       <div 
         className={cn(
           "fixed inset-0 bg-black/90 backdrop-blur-lg z-40 transition-transform duration-300 pt-20",

@@ -6,7 +6,7 @@ import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
   TorusWalletAdapter,
-  SlopeWalletAdapter
+  CloverWalletAdapter
 } from '@solana/wallet-adapter-wallets';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { clusterApiUrl } from '@solana/web3.js';
@@ -31,7 +31,7 @@ export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter({ network }),
       new TorusWalletAdapter(),
-      new SlopeWalletAdapter()
+      new CloverWalletAdapter()
     ],
     [network]
   );
