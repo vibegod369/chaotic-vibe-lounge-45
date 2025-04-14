@@ -1,10 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MenuIcon, XIcon, TwitterIcon, DiscIcon, GithubIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import ConnectWallet from './ConnectWallet';
-import ConnectSolanaWallet from './ConnectSolanaWallet';
 import GlitchText from './GlitchText';
 
 const Header = () => {
@@ -71,7 +71,6 @@ const Header = () => {
             
             <div className="flex items-center space-x-2">
               <ConnectWallet />
-              <ConnectSolanaWallet />
             </div>
           </nav>
           
@@ -111,7 +110,6 @@ const Header = () => {
           
           <div className="pt-4 flex flex-col space-y-3">
             <ConnectWallet />
-            <ConnectSolanaWallet />
           </div>
         </div>
       </div>
