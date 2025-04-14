@@ -2,31 +2,74 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CopyIcon, CheckIcon, LinkIcon } from 'lucide-react';
+import { CopyIcon, CheckIcon, LinkIcon, RefreshCcwIcon } from 'lucide-react';
 import { toast } from "sonner";
 import ConnectWallet from './ConnectWallet';
 import walletService, { walletEvents } from '@/services/wallet';
+import referralService, { ReferralStats } from '@/services/referral';
+import { useQuery } from '@tanstack/react-query';
 
 const ReferralSystem = () => {
   const [referralCode, setReferralCode] = useState<string>('');
   const [referralLink, setReferralLink] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
-  const [referrals, setReferrals] = useState<number>(0);
-  const [rewards, setRewards] = useState<string>('0.00');
   const [hasCopied, setHasCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Check for referral parameter in URL
+  useEffect(() => {
+    const referralParam = referralService.checkReferralParam();
+    if (referralParam) {
+      // Store the referral code in session storage to be used when the user connects their wallet
+      sessionStorage.setItem('pendingReferral', referralParam);
+      toast.info('Referral code detected', {
+        description: `You were referred by someone with code: ${referralParam}`
+      });
+    }
+  }, []);
+
+  // Fetch referral stats
+  const { data: referralStats, refetch: refetchStats } = useQuery({
+    queryKey: ['referralStats', walletService.wallet?.address],
+    queryFn: async () => {
+      if (!walletService.wallet?.address) return { total_referrals: 0, total_rewards: 0 };
+      return referralService.getReferralStats(walletService.wallet.address);
+    },
+    enabled: !!walletService.wallet?.address,
+    staleTime: 60000, // 1 minute
+  });
 
   useEffect(() => {
-    const handleConnect = () => {
+    const handleConnect = async () => {
       if (walletService.wallet) {
         setIsConnected(true);
-        // Generate a referral code based on wallet address
-        const address = walletService.wallet.address;
-        const code = `VIBE-${address.slice(2, 8)}`;
-        setReferralCode(code);
+        setIsLoading(true);
         
-        // Create referral link
-        const baseUrl = window.location.origin;
-        setReferralLink(`${baseUrl}?ref=${code}`);
+        try {
+          // Get or create referral
+          const code = await referralService.getOrCreateReferral(walletService.wallet.address);
+          setReferralCode(code);
+          
+          // Create referral link
+          const baseUrl = window.location.origin;
+          setReferralLink(`${baseUrl}?ref=${code}`);
+          
+          // Check if there's a pending referral
+          const pendingReferral = sessionStorage.getItem('pendingReferral');
+          if (pendingReferral) {
+            await referralService.processReferral(pendingReferral, walletService.wallet.address);
+            sessionStorage.removeItem('pendingReferral');
+            toast.success('Referral processed successfully!');
+          }
+          
+          // Refresh stats
+          refetchStats();
+        } catch (error) {
+          console.error('Referral system error:', error);
+          toast.error('Failed to set up referral');
+        } finally {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -49,7 +92,7 @@ const ReferralSystem = () => {
       window.removeEventListener(walletEvents.connected, handleConnect);
       window.removeEventListener(walletEvents.disconnected, handleDisconnect);
     };
-  }, []);
+  }, [refetchStats]);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(referralLink);
@@ -73,50 +116,58 @@ const ReferralSystem = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="p-4 border border-vibe-neon/30 rounded-lg bg-vibe-dark/50">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-400">Your Referral Code:</span>
-              <span className="text-sm text-vibe-neon font-code">{referralCode}</span>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <RefreshCcwIcon className="animate-spin text-vibe-neon" />
             </div>
-            
-            <div className="relative">
-              <Input 
-                value={referralLink}
-                readOnly
-                className="pr-10 font-code text-sm bg-vibe-dark/80 border-vibe-neon/30 text-vibe-neon/80"
-              />
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="absolute right-0 top-0 text-vibe-neon hover:text-vibe-neon/80 hover:bg-transparent"
-                onClick={copyToClipboard}
-              >
-                {hasCopied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="p-3 border border-vibe-blue/30 rounded-lg">
-              <div className="text-vibe-blue text-2xl font-bold">{referrals}</div>
-              <div className="text-xs text-gray-400">Referrals</div>
-            </div>
-            <div className="p-3 border border-vibe-pink/30 rounded-lg">
-              <div className="text-vibe-pink text-2xl font-bold">{rewards} ETH</div>
-              <div className="text-xs text-gray-400">Earned Rewards</div>
-            </div>
-          </div>
-          
-          <div className="pt-2">
-            <Button 
-              onClick={() => {
-                window.open(`https://twitter.com/intent/tweet?text=Join%20the%20$VIBE%20presale%20using%20my%20referral%20link%20and%20let's%20embrace%20the%20chaos%20together!&url=${encodeURIComponent(referralLink)}`, '_blank');
-              }}
-              className="w-full bg-vibe-blue/20 text-white border border-vibe-blue/40 hover:bg-vibe-blue/30"
-            >
-              <LinkIcon className="mr-2 h-4 w-4" /> Share on Twitter
-            </Button>
-          </div>
+          ) : (
+            <>
+              <div className="p-4 border border-vibe-neon/30 rounded-lg bg-vibe-dark/50">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-400">Your Referral Code:</span>
+                  <span className="text-sm text-vibe-neon font-code">{referralCode}</span>
+                </div>
+                
+                <div className="relative">
+                  <Input 
+                    value={referralLink}
+                    readOnly
+                    className="pr-10 font-code text-sm bg-vibe-dark/80 border-vibe-neon/30 text-vibe-neon/80"
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="absolute right-0 top-0 text-vibe-neon hover:text-vibe-neon/80 hover:bg-transparent"
+                    onClick={copyToClipboard}
+                  >
+                    {hasCopied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div className="p-3 border border-vibe-blue/30 rounded-lg">
+                  <div className="text-vibe-blue text-2xl font-bold">{referralStats?.total_referrals || 0}</div>
+                  <div className="text-xs text-gray-400">Referrals</div>
+                </div>
+                <div className="p-3 border border-vibe-pink/30 rounded-lg">
+                  <div className="text-vibe-pink text-2xl font-bold">{referralStats?.total_rewards.toFixed(2) || "0.00"} ETH</div>
+                  <div className="text-xs text-gray-400">Earned Rewards</div>
+                </div>
+              </div>
+              
+              <div className="pt-2">
+                <Button 
+                  onClick={() => {
+                    window.open(`https://twitter.com/intent/tweet?text=Join%20the%20$VIBE%20presale%20using%20my%20referral%20link%20and%20let's%20embrace%20the%20chaos%20together!&url=${encodeURIComponent(referralLink)}`, '_blank');
+                  }}
+                  className="w-full bg-vibe-blue/20 text-white border border-vibe-blue/40 hover:bg-vibe-blue/30"
+                >
+                  <LinkIcon className="mr-2 h-4 w-4" /> Share on Twitter
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
