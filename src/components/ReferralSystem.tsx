@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CopyIcon, CheckIcon, LinkIcon, RefreshCcwIcon } from 'lucide-react';
+import { CopyIcon, CheckIcon, LinkIcon, RefreshCcwIcon, AlertCircleIcon } from 'lucide-react';
 import { toast } from "sonner";
 import ConnectWallet from './ConnectWallet';
 import walletService, { walletEvents } from '@/services/wallet';
@@ -15,16 +15,22 @@ const ReferralSystem = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [serviceError, setServiceError] = useState(false);
 
   // Check for referral parameter in URL
   useEffect(() => {
-    const referralParam = referralService.checkReferralParam();
-    if (referralParam) {
-      // Store the referral code in session storage to be used when the user connects their wallet
-      sessionStorage.setItem('pendingReferral', referralParam);
-      toast.info('Referral code detected', {
-        description: `You were referred by someone with code: ${referralParam}`
-      });
+    try {
+      const referralParam = referralService.checkReferralParam();
+      if (referralParam) {
+        // Store the referral code in session storage to be used when the user connects their wallet
+        sessionStorage.setItem('pendingReferral', referralParam);
+        toast.info('Referral code detected', {
+          description: `You were referred by someone with code: ${referralParam}`
+        });
+      }
+    } catch (error) {
+      console.error('Error checking referral parameter:', error);
+      setServiceError(true);
     }
   }, []);
 
@@ -33,7 +39,13 @@ const ReferralSystem = () => {
     queryKey: ['referralStats', walletService.wallet?.address],
     queryFn: async () => {
       if (!walletService.wallet?.address) return { total_referrals: 0, total_rewards: 0 };
-      return referralService.getReferralStats(walletService.wallet.address);
+      try {
+        return referralService.getReferralStats(walletService.wallet.address);
+      } catch (error) {
+        console.error('Error fetching referral stats:', error);
+        setServiceError(true);
+        return { total_referrals: 0, total_rewards: 0 };
+      }
     },
     enabled: !!walletService.wallet?.address,
     staleTime: 60000, // 1 minute
@@ -48,25 +60,30 @@ const ReferralSystem = () => {
         try {
           // Get or create referral
           const code = await referralService.getOrCreateReferral(walletService.wallet.address);
-          setReferralCode(code);
+          if (code) {
+            setReferralCode(code);
+            
+            // Create referral link
+            const baseUrl = window.location.origin;
+            setReferralLink(`${baseUrl}?ref=${code}`);
           
-          // Create referral link
-          const baseUrl = window.location.origin;
-          setReferralLink(`${baseUrl}?ref=${code}`);
+            // Check if there's a pending referral
+            const pendingReferral = sessionStorage.getItem('pendingReferral');
+            if (pendingReferral) {
+              await referralService.processReferral(pendingReferral, walletService.wallet.address);
+              sessionStorage.removeItem('pendingReferral');
+              toast.success('Referral processed successfully!');
+            }
           
-          // Check if there's a pending referral
-          const pendingReferral = sessionStorage.getItem('pendingReferral');
-          if (pendingReferral) {
-            await referralService.processReferral(pendingReferral, walletService.wallet.address);
-            sessionStorage.removeItem('pendingReferral');
-            toast.success('Referral processed successfully!');
+            // Refresh stats
+            refetchStats();
+          } else {
+            setServiceError(true);
           }
-          
-          // Refresh stats
-          refetchStats();
         } catch (error) {
           console.error('Referral system error:', error);
           toast.error('Failed to set up referral');
+          setServiceError(true);
         } finally {
           setIsLoading(false);
         }
@@ -77,6 +94,7 @@ const ReferralSystem = () => {
       setIsConnected(false);
       setReferralCode('');
       setReferralLink('');
+      setServiceError(false);
     };
 
     // Check if already connected
@@ -103,6 +121,24 @@ const ReferralSystem = () => {
       setHasCopied(false);
     }, 3000);
   };
+
+  // If there's a service error, show a warning
+  if (serviceError && isConnected) {
+    return (
+      <div className="p-6 border border-orange-500/50 rounded-lg bg-orange-500/10">
+        <div className="flex items-center gap-2 text-orange-400 mb-4">
+          <AlertCircleIcon className="h-5 w-5" />
+          <h3 className="font-medium">Referral Service Unavailable</h3>
+        </div>
+        <p className="text-gray-400 text-sm mb-4">
+          The referral service is currently unavailable. This may be due to missing configuration or connection issues.
+        </p>
+        <p className="text-gray-400 text-sm">
+          Please make sure the Supabase environment variables are correctly set up and try again later.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
