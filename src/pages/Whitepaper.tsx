@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Separator } from "@/components/ui/separator";
 import GlitchText from "@/components/GlitchText";
 import ReactMarkdown from 'react-markdown';
+import { FileTextIcon } from 'lucide-react';
 
 const Whitepaper = () => {
   // Store whitepaper content as markdown - this makes it easy to update
@@ -86,21 +87,32 @@ Vibe Coded Caos Dao is a pioneering project that turns chaos into creativity, le
 `);
 
   return (
-    <section className="py-20">
+    <section className="py-20 bg-vibe-dark min-h-screen">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold mb-4">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold mb-4 flex justify-center items-center">
+              <FileTextIcon className="mr-4 text-vibe-neon" size={36} />
               <GlitchText text="Whitepaper" color="neon" />
             </h1>
-            <p className="text-gray-400">
+            <p className="text-gray-400 text-lg">
               The vision and roadmap for Vibe Coded Chaos DAO
             </p>
+            <Separator className="my-8 bg-vibe-neon/30" />
           </div>
 
-          <div className="card-chaos p-8">
-            <div className="prose prose-invert prose-headings:text-vibe-neon prose-a:text-vibe-pink max-w-none">
-              <ReactMarkdown>
+          <div className="card-chaos p-8 bg-black/50 border border-vibe-blue/20 rounded-lg">
+            <div className="prose prose-invert prose-headings:text-vibe-neon prose-a:text-vibe-pink prose-strong:text-vibe-yellow max-w-none">
+              <ReactMarkdown 
+                components={{
+                  h2: ({node, ...props}) => <h2 className="text-3xl font-bold mb-4 text-vibe-neon" {...props} />,
+                  h3: ({node, ...props}) => <h3 className="text-2xl font-semibold mb-3 text-vibe-yellow" {...props} />,
+                  h4: ({node, ...props}) => <h4 className="text-xl font-medium mb-2 text-vibe-blue" {...props} />,
+                  p: ({node, ...props}) => <p className="mb-4 text-gray-300" {...props} />,
+                  ul: ({node, ...props}) => <ul className="list-disc list-inside mb-4 text-gray-300" {...props} />,
+                  ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-4 text-gray-300" {...props} />,
+                }}
+              >
                 {whitepaperContent}
               </ReactMarkdown>
             </div>
