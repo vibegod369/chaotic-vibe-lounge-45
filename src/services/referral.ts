@@ -1,13 +1,11 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { toast } from "sonner";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://qolbhenjvoxizxdanrdi.supabase.co";
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvbGJoZW5qdm94aXp4ZGFucmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ2Mjg0MzksImV4cCI6MjA2MDIwNDQzOX0.SjCA2IhbGsKLuWMrnvT9B5IvFMOCviIo9WEHY9ezN8I";
+const supabaseUrl = "https://qolbhenjvoxizxdanrdi.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvbGJoZW5qdm94aXp4ZGFucmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ2Mjg0MzksImV4cCI6MjA2MDIwNDQzOX0.SjCA2IhbGsKLuWMrnvT9B5IvFMOCviIo9WEHY9ezN8I";
 
-// Check if environment variables are available
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Missing Supabase environment variables. Make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.');
-}
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Type definitions for our referral data
 export interface Referral {
@@ -26,34 +24,6 @@ export interface ReferralStats {
 }
 
 class ReferralService {
-  private supabase;
-  
-  constructor() {
-    // Only create client if environment variables are available
-    if (supabaseUrl && supabaseKey) {
-      this.supabase = createClient(supabaseUrl, supabaseKey);
-    } else {
-      // Provide mock implementation if environment variables are missing
-      console.warn('Running referral service in mock mode due to missing environment variables');
-      this.supabase = this.createMockClient();
-    }
-  }
-  
-  // Create a mock client for development without environment variables
-  private createMockClient() {
-    return {
-      from: () => ({
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: null, error: null }),
-            maybeSingle: async () => ({ data: null, error: null }),
-          }),
-          insert: async () => ({ error: null }),
-        }),
-      }),
-    };
-  }
-  
   // Generate a referral code based on wallet address
   generateReferralCode(address: string): string {
     return `VIBE-${address.slice(2, 8)}`;
@@ -67,18 +37,24 @@ class ReferralService {
       const referralCode = this.generateReferralCode(walletAddress);
       
       // Check if referral code exists
-      const { data: existingReferral } = await this.supabase
+      const { data: existingReferral, error: fetchError } = await supabase
         .from('referrals')
         .select('referral_code')
         .eq('referrer_address', walletAddress)
-        .single();
+        .maybeSingle();
+      
+      if (fetchError) {
+        console.error('Error fetching referral:', fetchError);
+        toast.error('Failed to fetch referral');
+        return '';
+      }
       
       if (existingReferral) {
         return existingReferral.referral_code;
       }
       
       // Create new referral entry
-      const { error } = await this.supabase
+      const { error: insertError } = await supabase
         .from('referrals')
         .insert({
           referrer_address: walletAddress,
@@ -86,8 +62,8 @@ class ReferralService {
           status: 'pending'
         });
       
-      if (error) {
-        console.error('Error creating referral:', error);
+      if (insertError) {
+        console.error('Error creating referral:', insertError);
         toast.error('Failed to create referral');
         return '';
       }
@@ -106,11 +82,11 @@ class ReferralService {
     
     try {
       // Find the referrer
-      const { data: referrerData, error: referrerError } = await this.supabase
+      const { data: referrerData, error: referrerError } = await supabase
         .from('referrals')
         .select('referrer_address')
         .eq('referral_code', referralCode)
-        .single();
+        .maybeSingle();
       
       if (referrerError || !referrerData) {
         console.error('Invalid referral code:', referrerError);
@@ -124,7 +100,7 @@ class ReferralService {
       }
       
       // Update the referral with the new user
-      const { error: updateError } = await this.supabase
+      const { error: updateError } = await supabase
         .from('referrals')
         .insert({
           referrer_address: referrerData.referrer_address,
@@ -153,7 +129,7 @@ class ReferralService {
     
     try {
       // Count completed referrals
-      const { data: referrals, error } = await this.supabase
+      const { data: referrals, error } = await supabase
         .from('referrals')
         .select('*')
         .eq('referrer_address', walletAddress)

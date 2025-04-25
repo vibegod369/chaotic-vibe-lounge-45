@@ -9,7 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referral_code: string
+          referred_address: string | null
+          referrer_address: string
+          reward_claimed: boolean | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referral_code: string
+          referred_address?: string | null
+          referrer_address: string
+          reward_claimed?: boolean | null
+          status: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_address?: string | null
+          referrer_address?: string
+          reward_claimed?: boolean | null
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
