@@ -9,7 +9,21 @@ export type WalletInfo = {
   signer?: ethers.Signer;
 };
 
-// Create a custom event for wallet changes
+// Base network configuration
+const BASE_CHAIN_ID = 8453;
+const BASE_NETWORK_CONFIG = {
+  chainId: `0x${BASE_CHAIN_ID.toString(16)}`,
+  chainName: 'Base',
+  nativeCurrency: {
+    name: 'ETH',
+    symbol: 'ETH',
+    decimals: 18
+  },
+  rpcUrls: ['https://mainnet.base.org'],
+  blockExplorerUrls: ['https://basescan.org']
+};
+
+// Create custom events for wallet changes
 export const walletEvents = {
   connected: 'wallet-connected',
   disconnected: 'wallet-disconnected',
@@ -29,10 +43,8 @@ class WalletService {
   }
   
   constructor() {
-    // Restore wallet connection from localStorage on init
     this.checkExistingConnection();
     
-    // Listen for wallet events
     window.addEventListener('load', () => {
       if (window.ethereum) {
         window.ethereum.on('chainChanged', this.handleChainChanged);
@@ -53,17 +65,18 @@ class WalletService {
     }
   };
   
-  private handleChainChanged = (chainId: string) => {
-    // Reload the page when chain changes
-    window.location.reload();
+  private handleChainChanged = async (chainId: string) => {
+    const newChainId = parseInt(chainId);
+    if (newChainId !== BASE_CHAIN_ID) {
+      toast.error('Please switch to Base network');
+      await this.switchToBase();
+    }
   };
   
   private handleAccountsChanged = (accounts: string[]) => {
     if (accounts.length === 0) {
-      // User disconnected their wallet
       this.disconnect();
     } else {
-      // Account changed, update the current wallet
       this.updateWalletInfo(accounts[0]);
     }
   };
@@ -85,7 +98,6 @@ class WalletService {
       
       localStorage.setItem('walletAddress', address);
       
-      // Dispatch custom event
       window.dispatchEvent(new CustomEvent(walletEvents.connected, { 
         detail: this._wallet 
       }));
@@ -94,6 +106,34 @@ class WalletService {
     } catch (error) {
       console.error('Failed to update wallet info:', error);
       return null;
+    }
+  };
+
+  private switchToBase = async () => {
+    if (!window.ethereum) return;
+
+    try {
+      // Try switching to Base network
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: BASE_NETWORK_CONFIG.chainId }],
+      });
+    } catch (switchError: any) {
+      // If Base network is not added to MetaMask, add it
+      if (switchError.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [BASE_NETWORK_CONFIG],
+          });
+        } catch (addError) {
+          console.error('Failed to add Base network:', addError);
+          toast.error('Failed to add Base network to wallet');
+        }
+      } else {
+        console.error('Failed to switch to Base network:', switchError);
+        toast.error('Failed to switch to Base network');
+      }
     }
   };
   
@@ -115,6 +155,12 @@ class WalletService {
         });
         return null;
       }
+
+      // Ensure user is on Base network
+      const network = await provider.getNetwork();
+      if (network.chainId !== BASE_CHAIN_ID) {
+        await this.switchToBase();
+      }
       
       toast.success('Wallet connected successfully!', {
         description: `Connected to ${accounts[0]}`
@@ -134,14 +180,11 @@ class WalletService {
     this._wallet = null;
     localStorage.removeItem('walletAddress');
     
-    // Dispatch custom event
     window.dispatchEvent(new CustomEvent(walletEvents.disconnected));
     
     toast.info('Wallet disconnected');
   };
 }
 
-// Create a singleton instance
 const walletService = new WalletService();
-
 export default walletService;
