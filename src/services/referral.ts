@@ -1,10 +1,8 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { toast } from "sonner";
 
-// Initialize Supabase client with better error handling
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://qolbhenjvoxizxdanrdi.supabase.co";
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvbGJoZW5qdm94aXp4ZGFucmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ2Mjg0MzksImV4cCI6MjA2MDIwNDQzOX0.SjCA2IhbGsKLuWMrnvT9B5IvFMOCviIo9WEHY9ezN8I";
 
 // Check if environment variables are available
 if (!supabaseUrl || !supabaseKey) {
