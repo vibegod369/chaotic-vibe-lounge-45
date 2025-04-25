@@ -38,13 +38,13 @@ const ReferralSystem = () => {
   const { data: referralStats, refetch: refetchStats } = useQuery({
     queryKey: ['referralStats', walletService.wallet?.address],
     queryFn: async () => {
-      if (!walletService.wallet?.address) return { total_referrals: 0, total_rewards: 0 };
+      if (!walletService.wallet?.address) return { total_points: 0, total_rewards: 0 };
       try {
         return referralService.getReferralStats(walletService.wallet.address);
       } catch (error) {
         console.error('Error fetching referral stats:', error);
         setServiceError(true);
-        return { total_referrals: 0, total_rewards: 0 };
+        return { total_points: 0, total_rewards: 0 };
       }
     },
     enabled: !!walletService.wallet?.address,
@@ -183,7 +183,7 @@ const ReferralSystem = () => {
               
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div className="p-3 border border-vibe-blue/30 rounded-lg">
-                  <div className="text-vibe-blue text-2xl font-bold">{referralStats?.total_referrals || 0}</div>
+                  <div className="text-vibe-blue text-2xl font-bold">{referralStats?.total_points || 0}</div>
                   <div className="text-xs text-gray-400">Points</div>
                 </div>
                 <div className="p-3 border border-vibe-pink/30 rounded-lg">

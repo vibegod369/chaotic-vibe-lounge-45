@@ -7,6 +7,9 @@ const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Points per referral
+const POINTS_PER_REFERRAL = 10;
+
 // Type definitions for our referral data
 export interface Referral {
   id?: string;
@@ -19,7 +22,7 @@ export interface Referral {
 }
 
 export interface ReferralStats {
-  total_referrals: number;
+  total_points: number;
   total_rewards: number;
 }
 
@@ -124,7 +127,7 @@ class ReferralService {
   // Get referral stats for a user
   async getReferralStats(walletAddress: string): Promise<ReferralStats> {
     if (!walletAddress) {
-      return { total_referrals: 0, total_rewards: 0 };
+      return { total_points: 0, total_rewards: 0 };
     }
     
     try {
@@ -137,20 +140,21 @@ class ReferralService {
       
       if (error) {
         console.error('Error fetching referral stats:', error);
-        return { total_referrals: 0, total_rewards: 0 };
+        return { total_points: 0, total_rewards: 0 };
       }
       
-      // Calculate rewards (5% of referred contributions, placeholder logic)
+      // Calculate points (10 points per referral) and rewards
       const totalReferrals = referrals?.length || 0;
+      const totalPoints = totalReferrals * POINTS_PER_REFERRAL;
       const totalRewards = totalReferrals * 0.05; // Placeholder - would be calculated based on actual contributions
       
       return {
-        total_referrals: totalReferrals,
+        total_points: totalPoints,
         total_rewards: totalRewards
       };
     } catch (error) {
       console.error('Error getting referral stats:', error);
-      return { total_referrals: 0, total_rewards: 0 };
+      return { total_points: 0, total_rewards: 0 };
     }
   }
   

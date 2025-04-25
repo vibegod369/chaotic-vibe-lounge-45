@@ -10,8 +10,8 @@ export type WalletInfo = {
 };
 
 // Base network configuration
-const BASE_CHAIN_ID = 8453;
-const BASE_NETWORK_CONFIG = {
+export const BASE_CHAIN_ID = 8453;
+export const BASE_NETWORK_CONFIG = {
   chainId: `0x${BASE_CHAIN_ID.toString(16)}`,
   chainName: 'Base',
   nativeCurrency: {
@@ -67,9 +67,12 @@ class WalletService {
   
   private handleChainChanged = async (chainId: string) => {
     const newChainId = parseInt(chainId);
-    if (newChainId !== BASE_CHAIN_ID) {
-      toast.error('Please switch to Base network');
-      await this.switchToBase();
+    if (this._wallet) {
+      this._wallet.chainId = newChainId;
+      
+      window.dispatchEvent(new CustomEvent(walletEvents.chainChanged, { 
+        detail: { chainId: newChainId } 
+      }));
     }
   };
   
@@ -109,8 +112,11 @@ class WalletService {
     }
   };
 
-  private switchToBase = async () => {
-    if (!window.ethereum) return;
+  switchToBase = async () => {
+    if (!window.ethereum) {
+      toast.error('No Ethereum wallet found');
+      return false;
+    }
 
     try {
       // Try switching to Base network
@@ -118,6 +124,7 @@ class WalletService {
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: BASE_NETWORK_CONFIG.chainId }],
       });
+      return true;
     } catch (switchError: any) {
       // If Base network is not added to MetaMask, add it
       if (switchError.code === 4902) {
@@ -126,13 +133,16 @@ class WalletService {
             method: 'wallet_addEthereumChain',
             params: [BASE_NETWORK_CONFIG],
           });
+          return true;
         } catch (addError) {
           console.error('Failed to add Base network:', addError);
           toast.error('Failed to add Base network to wallet');
+          return false;
         }
       } else {
         console.error('Failed to switch to Base network:', switchError);
         toast.error('Failed to switch to Base network');
+        return false;
       }
     }
   };
@@ -156,12 +166,6 @@ class WalletService {
         return null;
       }
 
-      // Ensure user is on Base network
-      const network = await provider.getNetwork();
-      if (network.chainId !== BASE_CHAIN_ID) {
-        await this.switchToBase();
-      }
-      
       toast.success('Wallet connected successfully!', {
         description: `Connected to ${accounts[0]}`
       });

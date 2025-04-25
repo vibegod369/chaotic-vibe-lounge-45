@@ -16,6 +16,9 @@ import { ethers } from 'ethers';
 // Presale deposit address from user's specifications
 const PRESALE_ADDRESS = "0x77e88D42E6019744597E34dfDe1DC31A98e0F397";
 
+// Base network configuration
+const BASE_CHAIN_ID = 8453;
+
 interface PresaleInfo {
   minContribution: string;
   maxContribution: string;
@@ -30,6 +33,7 @@ const PresaleDeposit = () => {
   const [tokensToReceive, setTokensToReceive] = useState('0');
   const [isConnected, setIsConnected] = useState(false);
   const [isDepositing, setIsDepositing] = useState(false);
+  const [isCorrectNetwork, setIsCorrectNetwork] = useState(false);
   
   // Sample presale info - in a real app this would come from a contract or API
   const presaleInfo: PresaleInfo = {
@@ -48,14 +52,34 @@ const PresaleDeposit = () => {
   );
 
   useEffect(() => {
-    const handleConnect = () => {
+    const handleConnect = async () => {
       if (walletService.wallet) {
         setIsConnected(true);
+        checkNetwork();
       }
     };
 
     const handleDisconnect = () => {
       setIsConnected(false);
+      setIsCorrectNetwork(false);
+    };
+
+    const handleChainChanged = () => {
+      checkNetwork();
+    };
+
+    const checkNetwork = async () => {
+      if (walletService.wallet?.provider) {
+        try {
+          const network = await walletService.wallet.provider.getNetwork();
+          setIsCorrectNetwork(network.chainId === BASE_CHAIN_ID);
+        } catch (error) {
+          console.error("Error checking network:", error);
+          setIsCorrectNetwork(false);
+        }
+      } else {
+        setIsCorrectNetwork(false);
+      }
     };
 
     // Check if already connected
@@ -66,10 +90,12 @@ const PresaleDeposit = () => {
     // Add event listeners
     window.addEventListener(walletEvents.connected, handleConnect);
     window.addEventListener(walletEvents.disconnected, handleDisconnect);
+    window.addEventListener(walletEvents.chainChanged, handleChainChanged);
 
     return () => {
       window.removeEventListener(walletEvents.connected, handleConnect);
       window.removeEventListener(walletEvents.disconnected, handleDisconnect);
+      window.removeEventListener(walletEvents.chainChanged, handleChainChanged);
     };
   }, []);
 
@@ -98,9 +124,24 @@ const PresaleDeposit = () => {
     setAmount(presaleInfo.maxContribution);
   };
 
+  const switchToBaseNetwork = async () => {
+    await walletService.switchToBase();
+    // Check if network was successfully switched
+    if (walletService.wallet?.provider) {
+      const network = await walletService.wallet.provider.getNetwork();
+      setIsCorrectNetwork(network.chainId === BASE_CHAIN_ID);
+    }
+  };
+
   const handleDeposit = async () => {
     if (!isConnected) {
       toast.error("Please connect your wallet first");
+      return;
+    }
+
+    if (!isCorrectNetwork) {
+      toast.error("Please switch to Base network");
+      await switchToBaseNetwork();
       return;
     }
 
@@ -167,6 +208,25 @@ const PresaleDeposit = () => {
         </div>
       ) : (
         <div className="space-y-4">
+          {!isCorrectNetwork && (
+            <div className="p-3 border border-orange-500/50 rounded-lg bg-orange-500/10 mb-4">
+              <div className="flex items-center gap-2 text-orange-400 mb-2">
+                <AlertCircleIcon className="h-4 w-4" />
+                <h3 className="text-sm font-medium">Wrong Network</h3>
+              </div>
+              <p className="text-gray-400 text-xs mb-2">
+                Please switch to Base network to participate in the presale.
+              </p>
+              <Button 
+                size="sm"
+                onClick={switchToBaseNetwork} 
+                className="w-full bg-orange-500/20 hover:bg-orange-500/30 text-orange-200"
+              >
+                Switch to Base Network
+              </Button>
+            </div>
+          )}
+          
           <div className="mb-6">
             <div className="flex justify-between text-sm mb-1">
               <span className="text-gray-400">Progress</span>
@@ -225,7 +285,7 @@ const PresaleDeposit = () => {
           
           <Button
             onClick={handleDeposit}
-            disabled={!isConnected || isDepositing}
+            disabled={!isConnected || isDepositing || !isCorrectNetwork}
             className="w-full button-chaos group"
           >
             {isDepositing ? (
