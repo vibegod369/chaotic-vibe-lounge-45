@@ -42,8 +42,8 @@ const Index = () => {
             </h1>
 
             <p className="text-gray-300 mb-8">
-              Vibe Coded Chaos DAO is designed to harness the rough, spontaneous, and unrefined nature of vibe coding. 
-              Join our mission to embrace the chaotic and resilient ethos of decentralized technology. No barriers, no boundaries.
+              Vibe Coded Chaos DAO is here to drive the harness the rough, chaotic & unrefined nature of Web3 vibe coding. 
+              Join our mission to embrace the chaos of vibe-coded Web3. No barriers, no boundaries. Build and launch with $VIBE. 
             </p>
 
             <div className="my-12">
