@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,15 +5,14 @@ import { MenuIcon, XIcon } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ConnectWallet from './ConnectWallet';
 import GlitchText from './GlitchText';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Close mobile menu when navigating
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location.pathname]);
@@ -34,7 +32,6 @@ const Header = () => {
     <header className="bg-vibe-dark/80 backdrop-blur-md py-4 border-b border-vibe-neon/10 sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between">
-          {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <div className="text-2xl font-bold tracking-tighter">
               <GlitchText text="VIBE" color="neon" />
@@ -42,7 +39,6 @@ const Header = () => {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
           {!isMobile && (
             <nav className="hidden md:flex items-center space-x-1">
               {navItems.map((item) => (
@@ -62,11 +58,9 @@ const Header = () => {
             </nav>
           )}
 
-          {/* Connect Wallet Button */}
           <div className="flex items-center space-x-2">
             <ConnectWallet />
 
-            {/* Mobile Menu Button */}
             {isMobile && (
               <Button
                 variant="ghost"
@@ -84,7 +78,6 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
         {isMobile && isMenuOpen && (
           <nav className="md:hidden mt-4 py-2 space-y-1 border-t border-vibe-neon/10">
             {navItems.map((item) => (
