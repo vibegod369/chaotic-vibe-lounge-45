@@ -13,6 +13,9 @@ import ConnectWallet from './ConnectWallet';
 import walletService, { walletEvents } from '@/services/wallet';
 import { ethers } from 'ethers';
 
+// Presale deposit address from user's specifications
+const PRESALE_ADDRESS = "0x77e88D42E6019744597E34dfDe1DC31A98e0F397";
+
 interface PresaleInfo {
   minContribution: string;
   maxContribution: string;
@@ -101,6 +104,11 @@ const PresaleDeposit = () => {
       return;
     }
 
+    if (!walletService.wallet?.signer) {
+      toast.error("Wallet signer not available");
+      return;
+    }
+
     const amountFloat = parseFloat(amount);
     
     // Validate amount
@@ -122,20 +130,25 @@ const PresaleDeposit = () => {
     setIsDepositing(true);
     
     try {
-      // In a real app, this would be a contract call
-      // For now, we'll just simulate the deposit
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const amountInWei = ethers.utils.parseEther(amount);
       
-      toast.success("Deposit successful!", {
-        description: `You have successfully contributed ${amount} ETH to the presale.`
+      // Send transaction to the presale address
+      const tx = await walletService.wallet.signer.sendTransaction({
+        to: PRESALE_ADDRESS,
+        value: amountInWei,
       });
       
-      // Reset amount
-      setAmount('0.1');
-    } catch (error) {
+      // Wait for transaction to be mined
+      toast.info("Transaction submitted, waiting for confirmation...");
+      await tx.wait();
+      
+      toast.success("Deposit successful!", {
+        description: `You have successfully contributed ${amount} ETH to the presale. Transaction hash: ${tx.hash}`
+      });
+    } catch (error: any) {
       console.error('Deposit error:', error);
       toast.error("Deposit failed", {
-        description: "There was an error processing your deposit. Please try again."
+        description: error.message || "There was an error processing your deposit. Please try again."
       });
     } finally {
       setIsDepositing(false);

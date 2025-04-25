@@ -143,7 +143,7 @@ const ReferralSystem = () => {
   return (
     <div className="space-y-6">
       <p className="text-gray-300">
-        Connect your wallet to generate a unique referral code. Share it with friends and earn 5% of their contributions.
+        Connect your wallet to generate a unique referral code. Share it with friends and earn points and rewards.
       </p>
       
       {!isConnected ? (
@@ -184,7 +184,7 @@ const ReferralSystem = () => {
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div className="p-3 border border-vibe-blue/30 rounded-lg">
                   <div className="text-vibe-blue text-2xl font-bold">{referralStats?.total_referrals || 0}</div>
-                  <div className="text-xs text-gray-400">Referrals</div>
+                  <div className="text-xs text-gray-400">Points</div>
                 </div>
                 <div className="p-3 border border-vibe-pink/30 rounded-lg">
                   <div className="text-vibe-pink text-2xl font-bold">{referralStats?.total_rewards.toFixed(2) || "0.00"} ETH</div>
