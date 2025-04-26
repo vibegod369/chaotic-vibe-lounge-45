@@ -31,7 +31,7 @@ const Index = () => {
       <section className="min-h-screen pt-20 flex items-center relative overflow-hidden">
         <div className="container mx-auto px-4 py-20 relative z-10">
           <div className={`max-w-3xl mx-auto text-center transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-            <h1 className="text-4xl md:text-2xl font-bold mb-6 leading-tight">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
               <span className="block">
                 <GlitchText text="Coming Soon" color="neon" />
               </span>
