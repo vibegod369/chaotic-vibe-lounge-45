@@ -93,10 +93,10 @@ Vibe Coded Caos Dao is a pioneering project that turns chaos into creativity, le
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold mb-4 flex justify-center items-center">
               <FileTextIcon className="mr-4 text-vibe-neon" size={36} />
-              <GlitchText text="Whitepaper" color="neon" />
+              <GlitchText text="Vibe Coded Chaos Vision" color="neon" />
             </h1>
             <p className="text-gray-400 text-lg">
-              The vision and roadmap for Vibe Coded Chaos DAO
+              The vision for Vibe Coded Chaos DAO is to create a rapidly growing and developing community of vibe coders, vibe marketers and general vibe enjoyooors to collaborate, share ideas and launch. We embrace the rough and ready approach of vibe coding and reject perfection. We accept the bugs and move forward as one. Buying a Vibe DAO contributor pass gives you the ability to contribute and earn $VIBE coin UBI for your role in the DAO. 
             </p>
             <Separator className="my-8 bg-vibe-neon/30" />
           </div>
