@@ -173,23 +173,68 @@ const PresaleDeposit = () => {
     try {
       const amountInWei = ethers.utils.parseEther(amount);
       
-      // Send transaction to the presale address
+      // Check user balance before sending transaction
+      const balance = await walletService.wallet.provider.getBalance(walletService.wallet.address);
+      if (balance.lt(amountInWei)) {
+        toast.error("Insufficient balance to complete this transaction");
+        setIsDepositing(false);
+        return;
+      }
+
+      // Add gas estimate handling to avoid internal JSON RPC errors
+      let gasEstimate;
+      try {
+        // Estimate gas for the transaction
+        gasEstimate = await walletService.wallet.provider.estimateGas({
+          to: PRESALE_ADDRESS,
+          value: amountInWei,
+          from: walletService.wallet.address
+        });
+        
+        // Add 20% buffer to gas estimate to prevent failures
+        gasEstimate = gasEstimate.mul(120).div(100);
+      } catch (gasError) {
+        console.error('Gas estimation failed:', gasError);
+        // Use a reasonable default if estimation fails
+        gasEstimate = ethers.BigNumber.from(21000).mul(2); 
+      }
+      
+      // Send transaction to the presale address with explicit gas settings
       const tx = await walletService.wallet.signer.sendTransaction({
         to: PRESALE_ADDRESS,
         value: amountInWei,
+        gasLimit: gasEstimate
       });
       
       // Wait for transaction to be mined
       toast.info("Transaction submitted, waiting for confirmation...");
-      await tx.wait();
+      await tx.wait(1); // Wait for 1 confirmation
       
       toast.success("Deposit successful!", {
         description: `You have successfully contributed ${amount} ETH to the presale. Transaction hash: ${tx.hash}`
       });
     } catch (error: any) {
       console.error('Deposit error:', error);
+      
+      // Extract error message with more detailed RPC error handling
+      let errorMessage = 'Failed to execute deposit';
+      
+      if (error.error?.message) {
+        errorMessage = error.error.message;
+      } else if (error.reason) {
+        errorMessage = error.reason;
+      } else if (error.message) {
+        // Clean up common JSON-RPC error messages to be more user-friendly
+        errorMessage = error.message.split('(')[0].trim();
+        if (errorMessage.includes('insufficient funds')) {
+          errorMessage = 'Insufficient funds to complete this transaction including gas fees';
+        } else if (errorMessage.includes('user rejected')) {
+          errorMessage = 'Transaction was rejected in your wallet';
+        }
+      }
+      
       toast.error("Deposit failed", {
-        description: error.message || "There was an error processing your deposit. Please try again."
+        description: errorMessage
       });
     } finally {
       setIsDepositing(false);
