@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -145,7 +144,7 @@ const PresaleDeposit = () => {
       return;
     }
 
-    if (!walletService.wallet?.signer) {
+    if (!walletService.wallet?.signer || !walletService.wallet?.provider) {
       toast.error("Wallet signer not available");
       return;
     }
@@ -173,51 +172,43 @@ const PresaleDeposit = () => {
     try {
       const amountInWei = ethers.utils.parseEther(amount);
       
-      // Estimate gas to know the total cost (transaction amount + gas)
-      let gasEstimate;
-      try {
-        // Estimate gas for the transaction
-        gasEstimate = await walletService.wallet.provider.estimateGas({
-          to: PRESALE_ADDRESS,
-          value: amountInWei,
-          from: walletService.wallet.address
-        });
-        
-        // Add 20% buffer to gas estimate to prevent failures
-        gasEstimate = gasEstimate.mul(120).div(100);
-      } catch (gasError) {
-        console.error('Gas estimation failed:', gasError);
-        // Use a reasonable default if estimation fails
-        gasEstimate = ethers.BigNumber.from(21000).mul(2); 
-      }
-      
-      // Get current gas price
-      const gasPrice = await walletService.wallet.provider.getGasPrice();
-      
-      // Calculate total transaction cost (amount + gas fee)
-      const gasCost = gasPrice.mul(gasEstimate);
-      const totalCost = amountInWei.add(gasCost);
-      
-      // Check user balance before sending transaction
+      // Check simple balance first - must at least have the amount
       const balance = await walletService.wallet.provider.getBalance(walletService.wallet.address);
-      
-      if (balance.lt(totalCost)) {
-        const totalEthCost = parseFloat(ethers.utils.formatEther(totalCost));
-        const balanceEth = parseFloat(ethers.utils.formatEther(balance));
-        const gasCostEth = parseFloat(ethers.utils.formatEther(gasCost));
-        
-        toast.error("Insufficient balance for transaction", {
-          description: `You need ~${totalEthCost.toFixed(4)} ETH total (${amountFloat} ETH + ~${gasCostEth.toFixed(4)} ETH for gas). Current balance: ${balanceEth.toFixed(4)} ETH`
-        });
+      if (balance.lt(amountInWei)) {
+        const balanceEth = ethers.utils.formatEther(balance);
+        toast.error(`Insufficient ETH in wallet. You have ${balanceEth} ETH but need at least ${amount} ETH.`);
         setIsDepositing(false);
         return;
       }
       
-      // Send transaction to the presale address with explicit gas settings
+      // Give some buffer for gas - assume at least 5% of the transaction amount for now
+      // This is a simplified approach to avoid complex gas estimation issues
+      const estimatedGas = amountInWei.mul(5).div(100);
+      const totalEstimated = amountInWei.add(estimatedGas);
+      
+      if (balance.lt(totalEstimated)) {
+        const balanceEth = ethers.utils.formatEther(balance);
+        const neededWithGas = ethers.utils.formatEther(totalEstimated);
+        toast.error(`You need approximately ${neededWithGas} ETH (including gas). You have ${balanceEth} ETH.`);
+        setIsDepositing(false);
+        return;
+      }
+      
+      // Use a fixed gas limit instead of estimation to avoid issues
+      const gasLimit = ethers.BigNumber.from(60000);
+      
+      // Debug logs 
+      console.log("Transaction data:");
+      console.log("- Amount in ETH:", amount);
+      console.log("- Amount in Wei:", amountInWei.toString());
+      console.log("- User balance in Wei:", balance.toString());
+      console.log("- Gas limit:", gasLimit.toString());
+      
+      // Send transaction with fixed gas limit
       const tx = await walletService.wallet.signer.sendTransaction({
         to: PRESALE_ADDRESS,
         value: amountInWei,
-        gasLimit: gasEstimate
+        gasLimit: gasLimit
       });
       
       // Wait for transaction to be mined
