@@ -131,15 +131,15 @@ const Index = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
               <div className="p-6 border border-vibe-neon/30 rounded-lg hover:bg-vibe-neon/5 transition-colors">
                 <h3 className="text-vibe-neon font-bold mb-2">Fair Token Launch</h3>
-                <p className="text-sm text-gray-400">Transparent distribution prioritizing community participation with no private sales.</p>
+                <p className="text-sm text-gray-400">Transparent distribution prioritizing community participation with no private sales. Join a team and contribute.</p>
               </div>
               <div className="p-6 border border-vibe-blue/30 rounded-lg hover:bg-vibe-blue/5 transition-colors">
                 <h3 className="text-vibe-blue font-bold mb-2">Project Launchpad</h3>
-                <p className="text-sm text-gray-400">Launch vibe-coded projects using our contract factory with VIBE as liquidity.</p>
+                <p className="text-sm text-gray-400">Buy day-zero vibe-coded project on our trusted launchpad. Rugproof contract factory with VIBE as launch liquidity.</p>
               </div>
               <div className="p-6 border border-vibe-pink/30 rounded-lg hover:bg-vibe-pink/5 transition-colors">
                 <h3 className="text-vibe-pink font-bold mb-2">Vibe Contributor</h3>
-                <p className="text-sm text-gray-400">Stake LP tokens to support projects and earn VIBE rewards regardless of voting.</p>
+                <p className="text-sm text-gray-400">Buy DAO Memberships to get $VIBE UBI. Become a VC (Vibe Contributor) to support projects. (No Patagonia vest needed).</p>
               </div>
             </div>
           </div>
