@@ -173,15 +173,7 @@ const PresaleDeposit = () => {
     try {
       const amountInWei = ethers.utils.parseEther(amount);
       
-      // Check user balance before sending transaction
-      const balance = await walletService.wallet.provider.getBalance(walletService.wallet.address);
-      if (balance.lt(amountInWei)) {
-        toast.error("Insufficient balance to complete this transaction");
-        setIsDepositing(false);
-        return;
-      }
-
-      // Add gas estimate handling to avoid internal JSON RPC errors
+      // Estimate gas to know the total cost (transaction amount + gas)
       let gasEstimate;
       try {
         // Estimate gas for the transaction
@@ -197,6 +189,28 @@ const PresaleDeposit = () => {
         console.error('Gas estimation failed:', gasError);
         // Use a reasonable default if estimation fails
         gasEstimate = ethers.BigNumber.from(21000).mul(2); 
+      }
+      
+      // Get current gas price
+      const gasPrice = await walletService.wallet.provider.getGasPrice();
+      
+      // Calculate total transaction cost (amount + gas fee)
+      const gasCost = gasPrice.mul(gasEstimate);
+      const totalCost = amountInWei.add(gasCost);
+      
+      // Check user balance before sending transaction
+      const balance = await walletService.wallet.provider.getBalance(walletService.wallet.address);
+      
+      if (balance.lt(totalCost)) {
+        const totalEthCost = parseFloat(ethers.utils.formatEther(totalCost));
+        const balanceEth = parseFloat(ethers.utils.formatEther(balance));
+        const gasCostEth = parseFloat(ethers.utils.formatEther(gasCost));
+        
+        toast.error("Insufficient balance for transaction", {
+          description: `You need ~${totalEthCost.toFixed(4)} ETH total (${amountFloat} ETH + ~${gasCostEth.toFixed(4)} ETH for gas). Current balance: ${balanceEth.toFixed(4)} ETH`
+        });
+        setIsDepositing(false);
+        return;
       }
       
       // Send transaction to the presale address with explicit gas settings
