@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { toast } from "sonner";
 
@@ -23,7 +22,7 @@ export interface Referral {
 
 export interface ReferralStats {
   total_points: number;
-  total_rewards: number;
+  total_rewards: number;  // now represents VIBE tokens
 }
 
 class ReferralService {
@@ -143,10 +142,10 @@ class ReferralService {
         return { total_points: 0, total_rewards: 0 };
       }
       
-      // Calculate points (10 points per referral) and rewards
+      // Calculate points (10 points per referral) and rewards in VIBE
       const totalReferrals = referrals?.length || 0;
       const totalPoints = totalReferrals * POINTS_PER_REFERRAL;
-      const totalRewards = totalReferrals * 0.05; // Placeholder - would be calculated based on actual contributions
+      const totalRewards = totalReferrals * 100; // 100 VIBE tokens per referral
       
       return {
         total_points: totalPoints,

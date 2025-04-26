@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,12 +16,10 @@ const ReferralSystem = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [serviceError, setServiceError] = useState(false);
 
-  // Check for referral parameter in URL
   useEffect(() => {
     try {
       const referralParam = referralService.checkReferralParam();
       if (referralParam) {
-        // Store the referral code in session storage to be used when the user connects their wallet
         sessionStorage.setItem('pendingReferral', referralParam);
         toast.info('Referral code detected', {
           description: `You were referred by someone with code: ${referralParam}`
@@ -34,7 +31,6 @@ const ReferralSystem = () => {
     }
   }, []);
 
-  // Fetch referral stats
   const { data: referralStats, refetch: refetchStats } = useQuery({
     queryKey: ['referralStats', walletService.wallet?.address],
     queryFn: async () => {
@@ -48,7 +44,7 @@ const ReferralSystem = () => {
       }
     },
     enabled: !!walletService.wallet?.address,
-    staleTime: 60000, // 1 minute
+    staleTime: 60000,
   });
 
   useEffect(() => {
@@ -58,16 +54,13 @@ const ReferralSystem = () => {
         setIsLoading(true);
         
         try {
-          // Get or create referral
           const code = await referralService.getOrCreateReferral(walletService.wallet.address);
           if (code) {
             setReferralCode(code);
             
-            // Create referral link
             const baseUrl = window.location.origin;
             setReferralLink(`${baseUrl}?ref=${code}`);
           
-            // Check if there's a pending referral
             const pendingReferral = sessionStorage.getItem('pendingReferral');
             if (pendingReferral) {
               await referralService.processReferral(pendingReferral, walletService.wallet.address);
@@ -75,7 +68,6 @@ const ReferralSystem = () => {
               toast.success('Referral processed successfully!');
             }
           
-            // Refresh stats
             refetchStats();
           } else {
             setServiceError(true);
@@ -97,12 +89,10 @@ const ReferralSystem = () => {
       setServiceError(false);
     };
 
-    // Check if already connected
     if (walletService.wallet) {
       handleConnect();
     }
 
-    // Add event listeners
     window.addEventListener(walletEvents.connected, handleConnect);
     window.addEventListener(walletEvents.disconnected, handleDisconnect);
 
@@ -122,7 +112,6 @@ const ReferralSystem = () => {
     }, 3000);
   };
 
-  // If there's a service error, show a warning
   if (serviceError && isConnected) {
     return (
       <div className="p-6 border border-orange-500/50 rounded-lg bg-orange-500/10">
@@ -187,7 +176,7 @@ const ReferralSystem = () => {
                   <div className="text-xs text-gray-400">Points</div>
                 </div>
                 <div className="p-3 border border-vibe-pink/30 rounded-lg">
-                  <div className="text-vibe-pink text-2xl font-bold">{referralStats?.total_rewards.toFixed(2) || "0.00"} ETH</div>
+                  <div className="text-vibe-pink text-2xl font-bold">{referralStats?.total_rewards.toFixed(2) || "0.00"} VIBE</div>
                   <div className="text-xs text-gray-400">Earned Rewards</div>
                 </div>
               </div>
