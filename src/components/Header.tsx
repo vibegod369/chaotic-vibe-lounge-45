@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -20,10 +21,6 @@ const Header = () => {
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'Whitepaper', path: '/whitepaper' },
-    { name: 'DAO', path: '/dao' },
-    { name: 'Deal Room', path: '/deal-room' },
-    { name: 'VibeDEX', path: '/vibe-dex' },
-    { name: 'Forums', path: '/forums' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
