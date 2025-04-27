@@ -31,4 +31,12 @@ export default defineConfig(({ mode }) => ({
       transformMixedEsModules: true,
     },
   },
+  esbuild: {
+    // Force esbuild to use a specific target version
+    target: 'es2020',
+    // Disable automatic version detection
+    supported: {
+      'top-level-await': true
+    }
+  }
 }));
