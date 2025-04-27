@@ -36,8 +36,9 @@ const Index = () => {
                 <GlitchText text="Coming Soon" color="neon" />
               </span>
               <span className="block mt-2">
-                <GlitchText text="GET READY TO" color="pink" intensity="low" />
+                <GlitchText text="THE " color="pink" intensity="low" />
                 <span className="text-gradient ml-2">$VIBE</span>
+                <GlitchText text="IS COMING " color="pink" intensity="low" />
               </span>
             </h1>
 
