@@ -33,7 +33,7 @@ const Index = () => {
           <div className={`max-w-3xl mx-auto text-center transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
               <span className="block">
-                <GlitchText text="Coming Soon" color="neon" size="small"/>
+                <GlitchText text="Buckle Up" color="grey" />
               </span>
               <span className="block mt-2">
                 <GlitchText text="THE " color="pink" intensity="low" />
