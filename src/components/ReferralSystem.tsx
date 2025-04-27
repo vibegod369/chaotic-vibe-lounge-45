@@ -36,12 +36,6 @@ const ReferralSystem = () => {
             
             const fetchedStats = await referralService.getReferralStats(walletService.wallet.address);
             setStats(fetchedStats);
-            
-            setDebugInfo(JSON.stringify({
-              referralCode: code,
-              referralLink: link,
-              stats: fetchedStats
-            }, null, 2));
 
             if (fetchedStats.total_points === 0) {
               toast.info('No referral points yet', {
