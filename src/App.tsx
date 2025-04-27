@@ -10,6 +10,7 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Whitepaper from "./pages/Whitepaper";
 
+// Create a client
 const queryClient = new QueryClient();
 
 const App = () => (
