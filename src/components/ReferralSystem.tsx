@@ -1,8 +1,6 @@
-
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { toast } from "sonner";
-import { RefreshCcwIcon, AlertCircleIcon } from 'lucide-react';
+import { RefreshCcwIcon } from 'lucide-react';
 import ConnectWallet from './ConnectWallet';
 import walletService, { walletEvents } from '@/services/wallet';
 import referralService from '@/services/referral';
@@ -17,7 +15,6 @@ const ReferralSystem = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [serviceError, setServiceError] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string | null>(null);
   const [stats, setStats] = useState<{ total_points: number; total_rewards: number }>({ 
     total_points: 0, 
     total_rewards: 0 
@@ -37,7 +34,6 @@ const ReferralSystem = () => {
             const link = `${baseUrl}?ref=${code}`;
             setReferralLink(link);
             
-            // Fetch and log referral stats for debugging
             const fetchedStats = await referralService.getReferralStats(walletService.wallet.address);
             setStats(fetchedStats);
             
@@ -117,16 +113,6 @@ const ReferralSystem = () => {
               </div>
             </>
           )}
-        </div>
-      )}
-      
-      {debugInfo && (
-        <div className="bg-gray-800 p-4 rounded-lg text-sm font-mono text-gray-300 overflow-x-auto">
-          <h4 className="font-bold mb-2 flex items-center">
-            <AlertCircleIcon className="mr-2 h-4 w-4 text-orange-500" /> 
-            Referral Debug Information
-          </h4>
-          <pre>{debugInfo}</pre>
         </div>
       )}
     </div>
