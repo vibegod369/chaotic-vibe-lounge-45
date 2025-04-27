@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from "sonner";
-import { RefreshCcwIcon } from 'lucide-react';
+import { RefreshCcwIcon, AlertCircleIcon } from 'lucide-react';
 import ConnectWallet from './ConnectWallet';
 import walletService, { walletEvents } from '@/services/wallet';
 import referralService from '@/services/referral';
@@ -17,37 +16,7 @@ const ReferralSystem = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [serviceError, setServiceError] = useState(false);
-
-  useEffect(() => {
-    try {
-      const referralParam = referralService.checkReferralParam();
-      if (referralParam) {
-        sessionStorage.setItem('pendingReferral', referralParam);
-        toast.info('Referral code detected', {
-          description: `You were referred by someone with code: ${referralParam}`
-        });
-      }
-    } catch (error) {
-      console.error('Error checking referral parameter:', error);
-      setServiceError(true);
-    }
-  }, []);
-
-  const { data: referralStats, refetch: refetchStats } = useQuery({
-    queryKey: ['referralStats', walletService.wallet?.address],
-    queryFn: async () => {
-      if (!walletService.wallet?.address) return { total_points: 0, total_rewards: 0 };
-      try {
-        return referralService.getReferralStats(walletService.wallet.address);
-      } catch (error) {
-        console.error('Error fetching referral stats:', error);
-        setServiceError(true);
-        return { total_points: 0, total_rewards: 0 };
-      }
-    },
-    enabled: !!walletService.wallet?.address,
-    staleTime: 60000,
-  });
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   useEffect(() => {
     const handleConnect = async () => {
@@ -60,16 +29,22 @@ const ReferralSystem = () => {
           if (code) {
             setReferralCode(code);
             const baseUrl = window.location.origin;
-            setReferralLink(`${baseUrl}?ref=${code}`);
-          
-            const pendingReferral = sessionStorage.getItem('pendingReferral');
-            if (pendingReferral) {
-              await referralService.processReferral(pendingReferral, walletService.wallet.address);
-              sessionStorage.removeItem('pendingReferral');
-              toast.success('Referral processed successfully!');
+            const link = `${baseUrl}?ref=${code}`;
+            setReferralLink(link);
+            
+            // Fetch and log referral stats for debugging
+            const stats = await referralService.getReferralStats(walletService.wallet.address);
+            setDebugInfo(JSON.stringify({
+              referralCode: code,
+              referralLink: link,
+              stats: stats
+            }, null, 2));
+
+            if (stats.total_points === 0) {
+              toast.info('No referral points yet', {
+                description: 'Share your link to start earning points!'
+              });
             }
-          
-            refetchStats();
           } else {
             setServiceError(true);
           }
@@ -101,7 +76,7 @@ const ReferralSystem = () => {
       window.removeEventListener(walletEvents.connected, handleConnect);
       window.removeEventListener(walletEvents.disconnected, handleDisconnect);
     };
-  }, [refetchStats]);
+  }, []);
 
   if (serviceError && isConnected) {
     return <ReferralServiceError />;
@@ -135,6 +110,16 @@ const ReferralSystem = () => {
               </div>
             </>
           )}
+        </div>
+      )}
+      
+      {debugInfo && (
+        <div className="bg-gray-800 p-4 rounded-lg text-sm font-mono text-gray-300 overflow-x-auto">
+          <h4 className="font-bold mb-2 flex items-center">
+            <AlertCircleIcon className="mr-2 h-4 w-4 text-orange-500" /> 
+            Referral Debug Information
+          </h4>
+          <pre>{debugInfo}</pre>
         </div>
       )}
     </div>
