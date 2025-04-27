@@ -33,12 +33,12 @@ const Index = () => {
           <div className={`max-w-3xl mx-auto text-center transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
               <span className="block">
-                <GlitchText text="Buckle Up" color="grey" />
+                <GlitchText text="Buckle Up" color="default" />
               </span>
               <span className="block mt-2">
                 <span className="text-gradient ml-2">$VIBE </span>
                 <GlitchText text="Coded Chaos " color="pink" intensity="low" />
-                <GlitchText text="is Coming " color="White" intensity="low" />
+                <GlitchText text="is Coming " color="default" intensity="low" />
               </span>
             </h1>
 

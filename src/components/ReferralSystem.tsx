@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from "sonner";
@@ -17,6 +18,10 @@ const ReferralSystem = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [serviceError, setServiceError] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const [stats, setStats] = useState<{ total_points: number; total_rewards: number }>({ 
+    total_points: 0, 
+    total_rewards: 0 
+  });
 
   useEffect(() => {
     const handleConnect = async () => {
@@ -33,14 +38,16 @@ const ReferralSystem = () => {
             setReferralLink(link);
             
             // Fetch and log referral stats for debugging
-            const stats = await referralService.getReferralStats(walletService.wallet.address);
+            const fetchedStats = await referralService.getReferralStats(walletService.wallet.address);
+            setStats(fetchedStats);
+            
             setDebugInfo(JSON.stringify({
               referralCode: code,
               referralLink: link,
-              stats: stats
+              stats: fetchedStats
             }, null, 2));
 
-            if (stats.total_points === 0) {
+            if (fetchedStats.total_points === 0) {
               toast.info('No referral points yet', {
                 description: 'Share your link to start earning points!'
               });
@@ -104,7 +111,7 @@ const ReferralSystem = () => {
                 referralCode={referralCode} 
                 referralLink={referralLink} 
               />
-              {referralStats && <ReferralStats stats={referralStats} />}
+              {stats && <ReferralStats stats={stats} />}
               <div className="pt-2">
                 <ShareReferralButton referralLink={referralLink} />
               </div>
