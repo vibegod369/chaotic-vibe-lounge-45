@@ -1,3 +1,4 @@
+
 import { ethers } from 'ethers';
 import { toast } from 'sonner';
 import { EthereumProvider } from '@walletconnect/ethereum-provider';
@@ -33,7 +34,7 @@ export const walletEvents = {
 
 class WalletService {
   private _wallet: WalletInfo | null = null;
-  private wcProvider: typeof EthereumProvider | null = null;
+  private wcProvider: EthereumProvider | null = null;
   
   get wallet() {
     return this._wallet;
@@ -151,7 +152,7 @@ class WalletService {
   private async initializeWalletConnect() {
     try {
       this.wcProvider = await EthereumProvider.init({
-        projectId: "your-project-id", // Required: Get this from https://cloud.walletconnect.com
+        projectId: "9f6ad252278de473475ba9ba51906dcf", // Updated with your project ID
         chains: [BASE_CHAIN_ID],
         showQrModal: true,
         // Metadata is required for WalletConnect v2
@@ -159,7 +160,7 @@ class WalletService {
           name: 'Vibe DAO',
           description: 'Vibe Coded Chaos DAO',
           url: window.location.origin,
-          icons: ['https://your-icon-url.png']
+          icons: ['https://vibecodedchaos.com/icon.png'] // You can update this with your actual icon URL
         }
       });
 
@@ -184,7 +185,7 @@ class WalletService {
     
     const accounts = await this.wcProvider.enable();
     if (accounts[0]) {
-      const provider = new ethers.providers.Web3Provider(this.wcProvider);
+      const provider = new ethers.providers.Web3Provider(this.wcProvider as any);
       const signer = provider.getSigner();
       const address = accounts[0];
       const network = await provider.getNetwork();
