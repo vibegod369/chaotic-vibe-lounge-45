@@ -1,6 +1,6 @@
-
 import { ethers } from 'ethers';
 import { toast } from 'sonner';
+import { EthereumProvider } from '@walletconnect/ethereum-provider';
 
 export type WalletInfo = {
   address: string;
@@ -33,6 +33,7 @@ export const walletEvents = {
 
 class WalletService {
   private _wallet: WalletInfo | null = null;
+  private wcProvider: EthereumProvider | null = null;
   
   get wallet() {
     return this._wallet;
@@ -147,30 +148,97 @@ class WalletService {
     }
   };
   
-  connect = async (): Promise<WalletInfo | null> => {
-    if (!window.ethereum) {
-      toast.error('No Ethereum wallet found', {
-        description: 'Please install MetaMask or another wallet to connect'
+  private async initializeWalletConnect() {
+    try {
+      this.wcProvider = await EthereumProvider.init({
+        projectId: "your-project-id", // Required: Get this from https://cloud.walletconnect.com
+        chains: [BASE_CHAIN_ID],
+        showQrModal: true,
+        // Metadata is required for WalletConnect v2
+        metadata: {
+          name: 'Vibe DAO',
+          description: 'Vibe Coded Chaos DAO',
+          url: window.location.origin,
+          icons: ['https://your-icon-url.png']
+        }
       });
-      return null;
+
+      // Subscribe to WalletConnect events
+      this.wcProvider.on('connect', () => {
+        this.handleWalletConnectConnection();
+      });
+
+      this.wcProvider.on('disconnect', () => {
+        this.disconnect();
+      });
+
+      return this.wcProvider;
+    } catch (error) {
+      console.error('Failed to initialize WalletConnect:', error);
+      throw error;
     }
+  }
+
+  private async handleWalletConnectConnection() {
+    if (!this.wcProvider) return;
+    
+    const accounts = await this.wcProvider.enable();
+    if (accounts[0]) {
+      const provider = new ethers.providers.Web3Provider(this.wcProvider);
+      const signer = provider.getSigner();
+      const address = accounts[0];
+      const network = await provider.getNetwork();
+      
+      this._wallet = {
+        address,
+        chainId: network.chainId,
+        provider,
+        signer
+      };
+      
+      localStorage.setItem('walletAddress', address);
+      window.dispatchEvent(new CustomEvent(walletEvents.connected, { 
+        detail: this._wallet 
+      }));
+    }
+  }
+
+  connect = async (): Promise<WalletInfo | null> => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
     try {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const accounts = await provider.send('eth_requestAccounts', []);
-      
-      if (accounts.length === 0) {
-        toast.error('No accounts found', {
-          description: 'Please create an account in your wallet'
-        });
-        return null;
-      }
+      if (isMobile && !window.ethereum) {
+        // On mobile without MetaMask, use WalletConnect
+        const wcProvider = await this.initializeWalletConnect();
+        if (wcProvider) {
+          await wcProvider.enable();
+          return this._wallet;
+        }
+      } else if (window.ethereum) {
+        // Use MetaMask or injected provider if available
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const accounts = await provider.send('eth_requestAccounts', []);
+        
+        if (accounts.length === 0) {
+          toast.error('No accounts found', {
+            description: 'Please create an account in your wallet'
+          });
+          return null;
+        }
 
-      toast.success('Wallet connected successfully!', {
-        description: `Connected to ${accounts[0]}`
-      });
-      
-      return this.updateWalletInfo(accounts[0]);
+        toast.success('Wallet connected successfully!', {
+          description: `Connected to ${accounts[0]}`
+        });
+        
+        return this.updateWalletInfo(accounts[0]);
+      } else {
+        // Fallback to WalletConnect even on desktop if no injected provider
+        const wcProvider = await this.initializeWalletConnect();
+        if (wcProvider) {
+          await wcProvider.enable();
+          return this._wallet;
+        }
+      }
     } catch (error) {
       console.error('Error connecting wallet:', error);
       toast.error('Failed to connect wallet', {
@@ -178,14 +246,17 @@ class WalletService {
       });
       return null;
     }
+    return null;
   };
   
   disconnect = (): void => {
+    if (this.wcProvider) {
+      this.wcProvider.disconnect();
+    }
     this._wallet = null;
     localStorage.removeItem('walletAddress');
     
     window.dispatchEvent(new CustomEvent(walletEvents.disconnected));
-    
     toast.info('Wallet disconnected');
   };
 }
