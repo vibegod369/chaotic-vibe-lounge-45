@@ -1,4 +1,3 @@
-
 import { ethers } from 'ethers';
 import { toast } from 'sonner';
 import { EthereumProvider } from '@walletconnect/ethereum-provider';
@@ -34,7 +33,7 @@ export const walletEvents = {
 
 class WalletService {
   private _wallet: WalletInfo | null = null;
-  private wcProvider: typeof EthereumProvider | null = null;
+  private wcProvider: EthereumProvider | null = null;
   
   get wallet() {
     return this._wallet;
