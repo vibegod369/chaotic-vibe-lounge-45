@@ -33,7 +33,8 @@ export const walletEvents = {
 
 class WalletService {
   private _wallet: WalletInfo | null = null;
-  private wcProvider: EthereumProvider | null = null;
+  // Fix the type declaration - EthereumProvider is a value, not a type
+  private wcProvider: any = null;
   
   get wallet() {
     return this._wallet;
